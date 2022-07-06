@@ -1,0 +1,216 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.flink.table.store.trino;
+
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.table.catalog.ObjectPath;
+import org.apache.flink.table.store.file.catalog.Catalog;
+import org.apache.flink.table.store.file.catalog.CatalogFactory;
+import org.apache.flink.table.store.file.schema.TableSchema;
+
+import io.trino.spi.connector.Assignment;
+import io.trino.spi.connector.ColumnHandle;
+import io.trino.spi.connector.ColumnMetadata;
+import io.trino.spi.connector.ConnectorMetadata;
+import io.trino.spi.connector.ConnectorSession;
+import io.trino.spi.connector.ConnectorTableHandle;
+import io.trino.spi.connector.ConnectorTableMetadata;
+import io.trino.spi.connector.ConnectorTableProperties;
+import io.trino.spi.connector.Constraint;
+import io.trino.spi.connector.ConstraintApplicationResult;
+import io.trino.spi.connector.ProjectionApplicationResult;
+import io.trino.spi.connector.SchemaTableName;
+import io.trino.spi.connector.SchemaTablePrefix;
+import io.trino.spi.connector.TableColumnsMetadata;
+import io.trino.spi.expression.ConnectorExpression;
+import io.trino.spi.predicate.TupleDomain;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toList;
+
+/** Trino {@link ConnectorMetadata}. */
+public class TrinoMetadata implements ConnectorMetadata {
+
+    private final Catalog catalog;
+
+    public TrinoMetadata(Configuration options) {
+        this.catalog = CatalogFactory.createCatalog(options);
+    }
+
+    @Override
+    public List<String> listSchemaNames(ConnectorSession session) {
+        return listSchemaNames();
+    }
+
+    private List<String> listSchemaNames() {
+        return catalog.listDatabases();
+    }
+
+    @Override
+    public TrinoTableHandle getTableHandle(ConnectorSession session, SchemaTableName tableName) {
+        return getTableHandle(tableName);
+    }
+
+    @Override
+    public ConnectorTableProperties getTableProperties(
+            ConnectorSession session, ConnectorTableHandle table) {
+        return new ConnectorTableProperties();
+    }
+
+    public TrinoTableHandle getTableHandle(SchemaTableName tableName) {
+        ObjectPath tablePath = new ObjectPath(tableName.getSchemaName(), tableName.getTableName());
+        TableSchema tableSchema;
+        try {
+            tableSchema = catalog.getTableSchema(tablePath);
+        } catch (Catalog.TableNotExistException e) {
+            return null;
+        }
+
+        return new TrinoTableHandle(
+                tableName.getSchemaName(),
+                tableName.getTableName(),
+                catalog.getTableLocation(tablePath).toString(),
+                tableSchema.id());
+    }
+
+    @Override
+    public ConnectorTableMetadata getTableMetadata(
+            ConnectorSession session, ConnectorTableHandle tableHandle) {
+        return ((TrinoTableHandle) tableHandle).tableMetadata();
+    }
+
+    @Override
+    public List<SchemaTableName> listTables(ConnectorSession session, Optional<String> schemaName) {
+        List<SchemaTableName> tables = new ArrayList<>();
+        schemaName
+                .map(Collections::singletonList)
+                .orElseGet(catalog::listDatabases)
+                .forEach(schema -> tables.addAll(listTables(schema)));
+        return tables;
+    }
+
+    private List<SchemaTableName> listTables(String schema) {
+        try {
+            return catalog.listTables(schema).stream()
+                    .map(table -> new SchemaTableName(schema, table))
+                    .collect(toList());
+        } catch (Catalog.DatabaseNotExistException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public Map<String, ColumnHandle> getColumnHandles(
+            ConnectorSession session, ConnectorTableHandle tableHandle) {
+        TrinoTableHandle table = (TrinoTableHandle) tableHandle;
+        Map<String, ColumnHandle> handleMap = new HashMap<>();
+        for (ColumnMetadata column : table.columnMetadatas()) {
+            handleMap.put(column.getName(), table.columnHandle(column.getName()));
+        }
+        return handleMap;
+    }
+
+    @Override
+    public ColumnMetadata getColumnMetadata(
+            ConnectorSession session, ConnectorTableHandle tableHandle, ColumnHandle columnHandle) {
+        return ((TrinoColumnHandle) columnHandle).getColumnMetadata();
+    }
+
+    @Override
+    public Iterator<TableColumnsMetadata> streamTableColumns(
+            ConnectorSession session, SchemaTablePrefix prefix) {
+        requireNonNull(prefix, "prefix is null");
+        List<SchemaTableName> tableNames;
+        if (prefix.getTable().isPresent()) {
+            tableNames = Collections.singletonList(prefix.toSchemaTableName());
+        } else {
+            tableNames = listTables(session, prefix.getSchema());
+        }
+
+        return tableNames.stream()
+                .map(
+                        table ->
+                                new TableColumnsMetadata(
+                                        table,
+                                        Optional.ofNullable(getTableHandle(session, table))
+                                                .map(TrinoTableHandle::columnMetadatas)))
+                .iterator();
+    }
+
+    @Override
+    public Optional<ConstraintApplicationResult<ConnectorTableHandle>> applyFilter(
+            ConnectorSession session, ConnectorTableHandle handle, Constraint constraint) {
+        TrinoTableHandle trinoTableHandle = (TrinoTableHandle) handle;
+        TupleDomain<TrinoColumnHandle> oldFilter = trinoTableHandle.getFilter();
+        TupleDomain<TrinoColumnHandle> newFilter =
+                constraint
+                        .getSummary()
+                        .transformKeys(TrinoColumnHandle.class::cast)
+                        .intersect(oldFilter);
+        if (oldFilter.equals(newFilter)) {
+            return Optional.empty();
+        }
+
+        return Optional.of(
+                new ConstraintApplicationResult<>(
+                        trinoTableHandle.copy(newFilter), constraint.getSummary(), false));
+    }
+
+    @Override
+    public Optional<ProjectionApplicationResult<ConnectorTableHandle>> applyProjection(
+            ConnectorSession session,
+            ConnectorTableHandle handle,
+            List<ConnectorExpression> projections,
+            Map<String, ColumnHandle> assignments) {
+        TrinoTableHandle trinoTableHandle = (TrinoTableHandle) handle;
+        List<ColumnHandle> newColumns = new ArrayList<>(assignments.values());
+
+        if (trinoTableHandle.getProjectedColumns().isPresent()
+                && containSameElements(newColumns, trinoTableHandle.getProjectedColumns().get())) {
+            return Optional.empty();
+        }
+
+        List<Assignment> assignmentList = new ArrayList<>();
+        assignments.forEach(
+                (name, column) ->
+                        assignmentList.add(
+                                new Assignment(
+                                        name,
+                                        column,
+                                        ((TrinoColumnHandle) column).getTrinoType())));
+
+        return Optional.of(
+                new ProjectionApplicationResult<>(
+                        trinoTableHandle, projections, assignmentList, false));
+    }
+
+    private static boolean containSameElements(
+            List<? extends ColumnHandle> first, List<? extends ColumnHandle> second) {
+        return new HashSet<>(first).equals(new HashSet<>(second));
+    }
+}
