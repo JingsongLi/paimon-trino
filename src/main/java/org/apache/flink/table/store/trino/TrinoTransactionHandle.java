@@ -16,6 +16,7 @@ package org.apache.flink.table.store.trino;
 
 import io.trino.spi.connector.ConnectorTransactionHandle;
 
+/** An empty transaction handle. */
 public enum TrinoTransactionHandle implements ConnectorTransactionHandle {
     INSTANCE
 }

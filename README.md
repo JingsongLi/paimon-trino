@@ -10,8 +10,7 @@ Building Table Store Trino Bundled Jar is by running:
 mvn clean install -DskipTests
 ```
 
-Then, deploy bundled jar to Trino cluster:
-https://trino.io/docs/current/develop/spi-overview.html#deploying-a-custom-plugin
+Then, copy `flink-table-store-trino-*.jar` and `flink-shaded-hadoop-2-uber-2.8.3-10.0.jar` to `plugin/tablestore`.
 
 ## Configure Table Store Catalog
 

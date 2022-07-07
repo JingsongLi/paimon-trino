@@ -49,7 +49,7 @@ public class SimpleTableTestHelper {
                                 ""));
         FileStoreTable table = FileStoreTableFactory.create(path);
         this.writer = table.newWrite();
-        this.commit = table.newCommit();
+        this.commit = table.newCommit("user");
     }
 
     public void write(RowData row) throws Exception {

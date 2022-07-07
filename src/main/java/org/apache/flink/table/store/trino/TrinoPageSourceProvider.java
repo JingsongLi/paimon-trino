@@ -36,6 +36,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.apache.flink.table.store.trino.ClassLoaderUtils.runWithContextClassLoader;
+
 /** Trino {@link ConnectorPageSourceProvider}. */
 public class TrinoPageSourceProvider implements ConnectorPageSourceProvider {
 
@@ -47,12 +49,15 @@ public class TrinoPageSourceProvider implements ConnectorPageSourceProvider {
             ConnectorTableHandle table,
             List<ColumnHandle> columns,
             DynamicFilter dynamicFilter) {
-        TrinoTableHandle trinoTable = (TrinoTableHandle) table;
-        TrinoSplit trinoSplit = (TrinoSplit) split;
+        return runWithContextClassLoader(
+                () -> createPageSource((TrinoTableHandle) table, (TrinoSplit) split, columns),
+                TrinoPageSourceProvider.class.getClassLoader());
+    }
 
-        TableSchema tableSchema = trinoTable.tableSchema();
+    private ConnectorPageSource createPageSource(TrinoTableHandle table, TrinoSplit split, List<ColumnHandle> columns) {
+        TableSchema tableSchema = table.tableSchema();
         TableRead read =
-                FileStoreTableFactory.create(new Path(trinoTable.getLocation()), tableSchema)
+                FileStoreTableFactory.create(new Path(table.getLocation()), tableSchema)
                         .newRead();
         List<String> fieldNames = tableSchema.fieldNames();
         List<String> projectedFields =
@@ -66,7 +71,7 @@ public class TrinoPageSourceProvider implements ConnectorPageSourceProvider {
         }
 
         try {
-            return new TrinoPageSource(read.createReader(trinoSplit.decodeSplit()), columns);
+            return new TrinoPageSource(read.createReader(split.decodeSplit()), columns);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
