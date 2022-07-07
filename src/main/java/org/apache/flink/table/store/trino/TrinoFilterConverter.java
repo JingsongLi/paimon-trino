@@ -36,7 +36,6 @@ import io.trino.spi.type.DateType;
 import io.trino.spi.type.DecimalType;
 import io.trino.spi.type.Decimals;
 import io.trino.spi.type.DoubleType;
-import io.trino.spi.type.Int128;
 import io.trino.spi.type.IntegerType;
 import io.trino.spi.type.LongTimestampWithTimeZone;
 import io.trino.spi.type.MapType;
@@ -191,7 +190,7 @@ public class TrinoFilterConverter {
         return and(conjuncts);
     }
 
-    private static Object getLiteralValue(Type type, Object trinoNativeValue) {
+    private Object getLiteralValue(Type type, Object trinoNativeValue) {
         requireNonNull(trinoNativeValue, "trinoNativeValue is null");
 
         if (type instanceof BooleanType) {
@@ -249,7 +248,7 @@ public class TrinoFilterConverter {
             } else {
                 bigDecimal =
                         new BigDecimal(
-                                ((Int128) trinoNativeValue).toBigInteger(), decimalType.getScale());
+                                DecimalUtils.toBigInteger(trinoNativeValue), decimalType.getScale());
             }
             return DecimalData.fromBigDecimal(
                     bigDecimal, decimalType.getPrecision(), decimalType.getScale());

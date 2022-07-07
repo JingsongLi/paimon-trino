@@ -20,25 +20,9 @@ package org.apache.flink.table.store.trino;
 
 import org.apache.flink.configuration.Configuration;
 
-import io.trino.spi.connector.Connector;
-import io.trino.spi.connector.ConnectorContext;
-import io.trino.spi.connector.ConnectorFactory;
+public class TrinoMetadata extends TrinoMetadataBase {
 
-import java.util.Map;
-
-/** Trino {@link ConnectorFactory}. */
-public class TrinoConnectorFactory implements ConnectorFactory {
-    @Override
-    public String getName() {
-        return "tablestore";
-    }
-
-    @Override
-    public Connector create(
-            String catalogName, Map<String, String> config, ConnectorContext context) {
-        return new TrinoConnector(
-                new TrinoMetadata(Configuration.fromMap(config)),
-                new TrinoSplitManager(),
-                new TrinoPageSourceProvider());
+    public TrinoMetadata(Configuration options) {
+        super(options);
     }
 }

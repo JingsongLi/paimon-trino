@@ -18,47 +18,23 @@
 
 package org.apache.flink.table.store.trino;
 
-import org.apache.flink.core.fs.Path;
-import org.apache.flink.table.store.file.schema.TableSchema;
-import org.apache.flink.table.store.table.FileStoreTableFactory;
-import org.apache.flink.table.store.table.source.Split;
-import org.apache.flink.table.store.table.source.TableScan;
-
 import io.trino.spi.connector.ConnectorSession;
-import io.trino.spi.connector.ConnectorSplitManager;
 import io.trino.spi.connector.ConnectorSplitSource;
 import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.ConnectorTransactionHandle;
 import io.trino.spi.connector.Constraint;
 import io.trino.spi.connector.DynamicFilter;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
-/** Trino {@link ConnectorSplitManager}. */
-public class TrinoSplitManager implements ConnectorSplitManager {
+public class TrinoSplitManager extends TrinoSplitManagerBase {
 
     @Override
     public ConnectorSplitSource getSplits(
             ConnectorTransactionHandle transaction,
             ConnectorSession session,
-            ConnectorTableHandle connectorTableHandle,
+            ConnectorTableHandle table,
             SplitSchedulingStrategy splitSchedulingStrategy,
             DynamicFilter dynamicFilter,
             Constraint constraint) {
-        // TODO dynamicFilter?
-        // TODO what is constraint?
-
-        TrinoTableHandle tableHandle = (TrinoTableHandle) connectorTableHandle;
-        TableSchema tableSchema = tableHandle.tableSchema();
-        TableScan tableScan =
-                FileStoreTableFactory.create(new Path(tableHandle.getLocation()), tableSchema)
-                        .newScan();
-        new TrinoFilterConverter(tableSchema.logicalRowType())
-                .convert(tableHandle.getFilter())
-                .ifPresent(tableScan::withFilter);
-        List<Split> splits = tableScan.plan().splits;
-        return new TrinoSplitSource(
-                splits.stream().map(TrinoSplit::fromSplit).collect(Collectors.toList()));
+        return getSplits(table);
     }
 }

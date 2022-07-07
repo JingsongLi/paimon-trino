@@ -49,16 +49,18 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 
 /** Trino {@link ConnectorMetadata}. */
-public class TrinoMetadata implements ConnectorMetadata {
+public abstract class TrinoMetadataBase implements ConnectorMetadata {
 
     private final Catalog catalog;
 
-    public TrinoMetadata(Configuration options) {
+    public TrinoMetadataBase(Configuration options) {
         this.catalog = CatalogFactory.createCatalog(options);
     }
 
@@ -142,8 +144,7 @@ public class TrinoMetadata implements ConnectorMetadata {
     }
 
     @Override
-    public Iterator<TableColumnsMetadata> streamTableColumns(
-            ConnectorSession session, SchemaTablePrefix prefix) {
+    public Map<SchemaTableName, List<ColumnMetadata>> listTableColumns(ConnectorSession session, SchemaTablePrefix prefix) {
         requireNonNull(prefix, "prefix is null");
         List<SchemaTableName> tableNames;
         if (prefix.getTable().isPresent()) {
@@ -152,14 +153,9 @@ public class TrinoMetadata implements ConnectorMetadata {
             tableNames = listTables(session, prefix.getSchema());
         }
 
-        return tableNames.stream()
-                .map(
-                        table ->
-                                new TableColumnsMetadata(
-                                        table,
-                                        Optional.ofNullable(getTableHandle(session, table))
-                                                .map(TrinoTableHandle::columnMetadatas)))
-                .iterator();
+        return tableNames.stream().collect(toMap(
+                Function.identity(),
+                table -> getTableHandle(session, table).columnMetadatas()));
     }
 
     @Override

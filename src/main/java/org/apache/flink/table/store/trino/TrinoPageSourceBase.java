@@ -39,7 +39,6 @@ import io.trino.spi.connector.ConnectorPageSource;
 import io.trino.spi.type.ArrayType;
 import io.trino.spi.type.DecimalType;
 import io.trino.spi.type.Decimals;
-import io.trino.spi.type.Int128;
 import io.trino.spi.type.LongTimestampWithTimeZone;
 import io.trino.spi.type.RowType;
 import io.trino.spi.type.Type;
@@ -70,7 +69,7 @@ import static java.lang.String.format;
 import static org.apache.flink.shaded.guava30.com.google.common.base.Verify.verify;
 
 /** Trino {@link ConnectorPageSource}. */
-public class TrinoPageSource implements ConnectorPageSource {
+public abstract class TrinoPageSourceBase implements ConnectorPageSource {
 
     private final RecordReader<RowData> reader;
     private final PageBuilder pageBuilder;
@@ -79,7 +78,7 @@ public class TrinoPageSource implements ConnectorPageSource {
 
     private boolean isFinished = false;
 
-    public TrinoPageSource(RecordReader<RowData> reader, List<ColumnHandle> projectedColumns) {
+    public TrinoPageSourceBase(RecordReader<RowData> reader, List<ColumnHandle> projectedColumns) {
         this.reader = reader;
         this.columnTypes = new ArrayList<>();
         this.logicalTypes = new ArrayList<>();
@@ -141,11 +140,6 @@ public class TrinoPageSource implements ConnectorPageSource {
     }
 
     @Override
-    public long getMemoryUsage() {
-        return 0;
-    }
-
-    @Override
     public void close() throws IOException {
         this.reader.close();
     }
@@ -184,7 +178,7 @@ public class TrinoPageSource implements ConnectorPageSource {
             }
         } else if (javaType == double.class) {
             type.writeDouble(output, ((Number) value).doubleValue());
-        } else if (type.getJavaType() == Int128.class) {
+        } else if (type instanceof DecimalType) {
             writeObject(output, type, value);
         } else if (javaType == Slice.class) {
             writeSlice(output, type, value);

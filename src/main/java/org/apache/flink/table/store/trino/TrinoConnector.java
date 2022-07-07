@@ -19,7 +19,6 @@
 package org.apache.flink.table.store.trino;
 
 import io.trino.spi.connector.Connector;
-import io.trino.spi.connector.ConnectorSession;
 import io.trino.spi.connector.ConnectorTransactionHandle;
 import io.trino.spi.transaction.IsolationLevel;
 
@@ -29,13 +28,13 @@ import static java.util.Objects.requireNonNull;
 
 /** Trino {@link Connector}. */
 public class TrinoConnector implements Connector {
-    private final TrinoMetadata trinoMetadata;
-    private final TrinoSplitManager trinoSplitManager;
+    private final TrinoMetadataBase trinoMetadata;
+    private final TrinoSplitManagerBase trinoSplitManager;
     private final TrinoPageSourceProvider trinoPageSourceProvider;
 
     public TrinoConnector(
-            TrinoMetadata trinoMetadata,
-            TrinoSplitManager trinoSplitManager,
+            TrinoMetadataBase trinoMetadata,
+            TrinoSplitManagerBase trinoSplitManager,
             TrinoPageSourceProvider trinoPageSourceProvider) {
         this.trinoMetadata = requireNonNull(trinoMetadata, "jmxMetadata is null");
         this.trinoSplitManager = requireNonNull(trinoSplitManager, "jmxSplitManager is null");
@@ -45,19 +44,18 @@ public class TrinoConnector implements Connector {
 
     @Override
     public ConnectorTransactionHandle beginTransaction(
-            IsolationLevel isolationLevel, boolean readOnly, boolean autoCommit) {
+            IsolationLevel isolationLevel, boolean readOnly) {
         checkConnectorSupports(READ_COMMITTED, isolationLevel);
         return TrinoTransactionHandle.INSTANCE;
     }
 
     @Override
-    public TrinoMetadata getMetadata(
-            ConnectorSession session, ConnectorTransactionHandle transactionHandle) {
+    public TrinoMetadataBase getMetadata(ConnectorTransactionHandle transactionHandle) {
         return trinoMetadata;
     }
 
     @Override
-    public TrinoSplitManager getSplitManager() {
+    public TrinoSplitManagerBase getSplitManager() {
         return trinoSplitManager;
     }
 
