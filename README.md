@@ -4,7 +4,7 @@ Because Trino's dependency is JDK 11, it is not possible to include the trino co
 
 ## Deploy Table Store Trino Connector
 
-Building Table Store Trino Bundled Jar is by running:
+Building Table Store Trino Bundled Jar is by running (JDK 11 required):
 
 - Trino 388: `mvn clean install -DskipTests`
 - Trino 358: `mvn clean install -DskipTests -Ptrino-358`
