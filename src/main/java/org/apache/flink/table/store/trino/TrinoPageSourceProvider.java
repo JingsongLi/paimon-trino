@@ -70,6 +70,10 @@ public class TrinoPageSourceProvider implements ConnectorPageSourceProvider {
             read.withProjection(projected);
         }
 
+        new TrinoFilterConverter(tableSchema.logicalRowType())
+                .convert(table.getFilter())
+                .ifPresent(read::withFilter);
+
         try {
             return new TrinoPageSource(read.createReader(split.decodeSplit()), columns);
         } catch (IOException e) {
