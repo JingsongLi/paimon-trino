@@ -37,20 +37,20 @@ import io.trino.spi.connector.ConstraintApplicationResult;
 import io.trino.spi.connector.ProjectionApplicationResult;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.SchemaTablePrefix;
-import io.trino.spi.connector.TableColumnsMetadata;
 import io.trino.spi.expression.ConnectorExpression;
+import io.trino.spi.expression.Variable;
 import io.trino.spi.predicate.TupleDomain;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
@@ -191,6 +191,10 @@ public abstract class TrinoMetadataBase implements ConnectorMetadata {
             return Optional.empty();
         }
 
+        List<ConnectorExpression> simpleProjections = projections.stream()
+                .filter(projection -> projection instanceof Variable)
+                .collect(toImmutableList());
+
         List<Assignment> assignmentList = new ArrayList<>();
         assignments.forEach(
                 (name, column) ->
@@ -202,7 +206,7 @@ public abstract class TrinoMetadataBase implements ConnectorMetadata {
 
         return Optional.of(
                 new ProjectionApplicationResult<>(
-                        trinoTableHandle, projections, assignmentList, false));
+                        trinoTableHandle.copy(Optional.of(newColumns)), simpleProjections, assignmentList, false));
     }
 
     private static boolean containSameElements(

@@ -21,6 +21,12 @@ package org.apache.flink.table.store.trino;
 import org.apache.flink.core.fs.Path;
 import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.StringData;
+import org.apache.flink.table.store.file.schema.SchemaManager;
+import org.apache.flink.table.store.file.schema.UpdateSchema;
+import org.apache.flink.table.store.table.FileStoreTable;
+import org.apache.flink.table.store.table.FileStoreTableFactory;
+import org.apache.flink.table.store.table.sink.TableCommit;
+import org.apache.flink.table.store.table.sink.TableWrite;
 import org.apache.flink.table.types.logical.BigIntType;
 import org.apache.flink.table.types.logical.IntType;
 import org.apache.flink.table.types.logical.RowType;
@@ -35,6 +41,7 @@ import org.testng.annotations.Test;
 
 import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -70,6 +77,33 @@ public class TestTrinoITCase extends AbstractTestQueryFramework {
         testHelper2.write(GenericRowData.of(5, 6L, StringData.fromString("3")));
         testHelper2.write(GenericRowData.of(7, 8L, StringData.fromString("4")));
         testHelper2.commit();
+
+        {
+            Path tablePath3 = new Path(warehouse, "default.db/t3");
+            RowType rowType =
+                    new RowType(
+                            Arrays.asList(
+                                    new RowType.RowField("pt", new VarCharType()),
+                                    new RowType.RowField("a", new IntType()),
+                                    new RowType.RowField("b", new BigIntType()),
+                                    new RowType.RowField("c", new BigIntType()),
+                                    new RowType.RowField("d", new IntType())));
+            new SchemaManager(tablePath3)
+                    .commitNewVersion(
+                            new UpdateSchema(
+                                    rowType,
+                                    Collections.singletonList("pt"),
+                                    Collections.emptyList(),
+                                    new HashMap<>(),
+                                    ""));
+            FileStoreTable table = FileStoreTableFactory.create(tablePath3);
+            TableWrite writer = table.newWrite();
+            TableCommit commit = table.newCommit("user");
+            writer.write(GenericRowData.of(StringData.fromString("1"), 1, 1L, 1L, 1));
+            writer.write(GenericRowData.of(StringData.fromString("1"), 1, 2L, 2L, 2));
+            writer.write(GenericRowData.of(StringData.fromString("2"), 3, 3L, 3L, 3));
+            commit.commit("", writer.prepareCommit(true));
+        }
 
         DistributedQueryRunner queryRunner = null;
         try {
@@ -109,6 +143,12 @@ public class TestTrinoITCase extends AbstractTestQueryFramework {
     public void testFilter() {
         assertThat(sql("SELECT a, c FROM tablestore.default.t2 WHERE a < 4"))
                 .isEqualTo("[[1, 1], [3, 2]]");
+    }
+
+    @Test
+    public void testGroupByWithCast() {
+        assertThat(sql("SELECT pt, a, SUM(b), SUM(d) FROM tablestore.default.t3 GROUP BY pt, a ORDER BY pt, a"))
+                .isEqualTo("[[1, 1, 3, 3], [2, 3, 3, 3]]");
     }
 
     private String sql(String sql) {
