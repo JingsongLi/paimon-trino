@@ -191,10 +191,6 @@ public abstract class TrinoMetadataBase implements ConnectorMetadata {
             return Optional.empty();
         }
 
-        List<ConnectorExpression> simpleProjections = projections.stream()
-                .filter(projection -> projection instanceof Variable)
-                .collect(toImmutableList());
-
         List<Assignment> assignmentList = new ArrayList<>();
         assignments.forEach(
                 (name, column) ->
@@ -206,7 +202,7 @@ public abstract class TrinoMetadataBase implements ConnectorMetadata {
 
         return Optional.of(
                 new ProjectionApplicationResult<>(
-                        trinoTableHandle.copy(Optional.of(newColumns)), simpleProjections, assignmentList, false));
+                        trinoTableHandle.copy(Optional.of(newColumns)), projections, assignmentList, false));
     }
 
     private static boolean containSameElements(
