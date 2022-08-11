@@ -19,6 +19,8 @@
 package org.apache.flink.table.store.trino;
 
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.core.fs.FileSystem;
+import org.apache.flink.core.plugin.PluginUtils;
 
 import io.trino.spi.connector.Connector;
 import io.trino.spi.connector.ConnectorContext;
@@ -37,8 +39,12 @@ public abstract class TrinoConnectorFactoryBase implements ConnectorFactory {
     @Override
     public Connector create(
             String catalogName, Map<String, String> config, ConnectorContext context) {
+        Configuration configuration = Configuration.fromMap(config);
+        // initialize file system
+        FileSystem.initialize(
+                configuration, PluginUtils.createPluginManagerFromRootFolder(configuration));
         return new TrinoConnector(
-                new TrinoMetadata(Configuration.fromMap(config)),
+                new TrinoMetadata(configuration),
                 new TrinoSplitManager(),
                 new TrinoPageSourceProvider());
     }
