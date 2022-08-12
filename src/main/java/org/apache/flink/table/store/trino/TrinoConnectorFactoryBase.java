@@ -21,6 +21,8 @@ package org.apache.flink.table.store.trino;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.core.plugin.PluginUtils;
+import org.apache.flink.runtime.security.SecurityConfiguration;
+import org.apache.flink.runtime.security.SecurityUtils;
 
 import io.trino.spi.connector.Connector;
 import io.trino.spi.connector.ConnectorContext;
@@ -43,6 +45,11 @@ public abstract class TrinoConnectorFactoryBase implements ConnectorFactory {
         // initialize file system
         FileSystem.initialize(
                 configuration, PluginUtils.createPluginManagerFromRootFolder(configuration));
+        try {
+            SecurityUtils.install(new SecurityConfiguration(configuration));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         return new TrinoConnector(
                 new TrinoMetadata(configuration),
                 new TrinoSplitManager(),
