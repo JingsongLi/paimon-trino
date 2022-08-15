@@ -25,6 +25,7 @@ warehouse=file:/tmp/warehouse
 
 You can configure kerberos keytag file when using KERBEROS authentication.
 ```
+security.kerberos.login.principal=hadoop-user
 security.kerberos.login.keytab=/etc/trino/hdfs.keytab
 ```
 Keytab files must be distributed to every node in the cluster that runs Trino.
