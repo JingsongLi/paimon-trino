@@ -23,7 +23,13 @@ connector.name=tablestore
 warehouse=file:/tmp/warehouse
 ```
 
-You can configure kerberos keytag file when using KERBEROS authentication.
+If you are using HDFS, choose one of the following ways to configure your HDFS:
+
+- set environment variable `HADOOP_HOME`.
+- set environment variable `HADOOP_CONF_DIR`.
+- configure `fs.hdfs.hadoopconf` in the properties.
+
+You can configure kerberos keytag file when using KERBEROS authentication in the properties.
 ```
 security.kerberos.login.principal=hadoop-user
 security.kerberos.login.keytab=/etc/trino/hdfs.keytab
