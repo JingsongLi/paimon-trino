@@ -20,6 +20,7 @@ package org.apache.flink.table.store.trino;
 
 import org.apache.flink.table.data.ArrayData;
 import org.apache.flink.table.data.DecimalData;
+import org.apache.flink.table.data.MapData;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.TimestampData;
 import org.apache.flink.table.data.binary.BinaryStringData;
@@ -40,6 +41,7 @@ import io.trino.spi.type.ArrayType;
 import io.trino.spi.type.DecimalType;
 import io.trino.spi.type.Decimals;
 import io.trino.spi.type.LongTimestampWithTimeZone;
+import io.trino.spi.type.MapType;
 import io.trino.spi.type.RowType;
 import io.trino.spi.type.Type;
 import io.trino.spi.type.VarbinaryType;
@@ -50,6 +52,7 @@ import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static io.airlift.slice.Slices.wrappedBuffer;
 import static io.trino.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
@@ -249,6 +252,28 @@ public abstract class TrinoPageSourceBase implements ConnectorPageSource {
                         fieldType,
                         fieldLogicalType,
                         RowDataUtils.get(rowData, index, fieldLogicalType),
+                        builder);
+            }
+            output.closeEntry();
+            return;
+        }
+        if (type instanceof MapType) {
+            MapData mapData = (MapData) value;
+            ArrayData keyArray = mapData.keyArray();
+            ArrayData valueArray = mapData.valueArray();
+            LogicalType keyType = ((org.apache.flink.table.types.logical.MapType) logicalType).getKeyType();
+            LogicalType valueType = ((org.apache.flink.table.types.logical.MapType) logicalType).getValueType();
+            BlockBuilder builder = output.beginBlockEntry();
+            for (int i = 0; i < keyArray.size(); i++) {
+                appendTo(
+                        type.getTypeParameters().get(0),
+                        keyType,
+                        RowDataUtils.get(keyArray, i, keyType),
+                        builder);
+                appendTo(
+                        type.getTypeParameters().get(1),
+                        valueType,
+                        RowDataUtils.get(valueArray, i, valueType),
                         builder);
             }
             output.closeEntry();
