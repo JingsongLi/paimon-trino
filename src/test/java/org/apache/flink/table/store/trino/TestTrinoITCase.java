@@ -19,6 +19,7 @@
 package org.apache.flink.table.store.trino;
 
 import org.apache.flink.core.fs.Path;
+import org.apache.flink.table.data.GenericMapData;
 import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.StringData;
 import org.apache.flink.table.store.file.schema.SchemaManager;
@@ -29,6 +30,7 @@ import org.apache.flink.table.store.table.sink.TableCommit;
 import org.apache.flink.table.store.table.sink.TableWrite;
 import org.apache.flink.table.types.logical.BigIntType;
 import org.apache.flink.table.types.logical.IntType;
+import org.apache.flink.table.types.logical.MapType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.table.types.logical.VarCharType;
 import org.apache.flink.types.RowKind;
@@ -105,6 +107,33 @@ public class TestTrinoITCase extends AbstractTestQueryFramework {
             commit.commit("", writer.prepareCommit(true));
         }
 
+        {
+            Path tablePath4 = new Path(warehouse, "default.db/t4");
+            RowType rowType =
+                    new RowType(
+                            Arrays.asList(
+                                    new RowType.RowField("i", new IntType()),
+                                    new RowType.RowField("map", new MapType(new VarCharType(VarCharType.MAX_LENGTH), new VarCharType(VarCharType.MAX_LENGTH)))
+                                    ));
+            new SchemaManager(tablePath4)
+                    .commitNewVersion(
+                            new UpdateSchema(
+                                    rowType,
+                                    Collections.emptyList(),
+                                    Collections.singletonList("i"),
+                                    new HashMap<>(),
+                                    ""));
+            FileStoreTable table = FileStoreTableFactory.create(tablePath4);
+            TableWrite writer = table.newWrite();
+            TableCommit commit = table.newCommit("user");
+            writer.write(GenericRowData.of(1, new GenericMapData(new HashMap<>() {
+                {
+                    put(StringData.fromString("1"), StringData.fromString("2"));
+                }
+            })));
+            commit.commit("", writer.prepareCommit(true));
+        }
+
         DistributedQueryRunner queryRunner = null;
         try {
             queryRunner =
@@ -130,6 +159,11 @@ public class TestTrinoITCase extends AbstractTestQueryFramework {
                                 new RowType.RowField("b", new BigIntType()),
                                 new RowType.RowField("c", new VarCharType())));
         return new SimpleTableTestHelper(tablePath, rowType);
+    }
+
+    @Test
+    public void testComplexTypes() {
+        assertThat(sql("SELECT * FROM tablestore.default.t4")).isEqualTo("[[1, {1=2}]]");
     }
 
     @Test
