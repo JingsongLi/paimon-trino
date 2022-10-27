@@ -18,7 +18,6 @@
 
 package org.apache.flink.table.store.trino;
 
-import io.trino.spi.connector.ConnectorPartitionHandle;
 import io.trino.spi.connector.ConnectorSplit;
 import io.trino.spi.connector.ConnectorSplitSource;
 
@@ -29,17 +28,15 @@ import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 
 /** Trino {@link ConnectorSplitSource}. */
-public class TrinoSplitSource implements ConnectorSplitSource {
+public abstract class TrinoSplitSourceBase implements ConnectorSplitSource {
 
     private final Queue<TrinoSplit> splits;
 
-    public TrinoSplitSource(List<TrinoSplit> splits) {
+    public TrinoSplitSourceBase(List<TrinoSplit> splits) {
         this.splits = new LinkedList<>(splits);
     }
 
-    @Override
-    public CompletableFuture<ConnectorSplitBatch> getNextBatch(
-            ConnectorPartitionHandle partitionHandle, int maxSize) {
+    protected CompletableFuture<ConnectorSplitBatch> innerGetNextBatch(int maxSize) {
         List<ConnectorSplit> batch = new ArrayList<>();
         for (int i = 0; i < maxSize; i++) {
             TrinoSplit split = splits.poll();

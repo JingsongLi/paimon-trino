@@ -24,13 +24,10 @@ import org.apache.flink.table.store.table.FileStoreTableFactory;
 import org.apache.flink.table.store.table.source.Split;
 import org.apache.flink.table.store.table.source.TableScan;
 
-import io.trino.spi.connector.ConnectorSession;
 import io.trino.spi.connector.ConnectorSplitManager;
 import io.trino.spi.connector.ConnectorSplitSource;
 import io.trino.spi.connector.ConnectorTableHandle;
-import io.trino.spi.connector.ConnectorTransactionHandle;
-import io.trino.spi.connector.Constraint;
-import io.trino.spi.connector.DynamicFilter;
+
 
 import java.util.List;
 import java.util.stream.Collectors;

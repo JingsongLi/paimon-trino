@@ -37,6 +37,7 @@ under the License.
 
     <properties>
         <trino.version>388</trino.version>
+        <trino.shade.version>388</trino.shade.version>
         <target.java.version>11</target.java.version>
         <hadoop.version>2.8.5</hadoop.version>
         <slf4j.version>1.7.32</slf4j.version>
@@ -188,6 +189,16 @@ under the License.
             <id>trino-358</id>
             <properties>
                 <trino.version>358</trino.version>
+                <trino.shade.version>358</trino.shade.version>
+                <target.java.version>11</target.java.version>
+            </properties>
+        </profile>
+        <profile>
+            <id>trino-391</id>
+            <properties>
+                <trino.version>391</trino.version>
+                <trino.shade.version>388</trino.shade.version>
+                <target.java.version>17</target.java.version>
             </properties>
         </profile>
     </profiles>
@@ -246,7 +257,7 @@ under the License.
                         </goals>
                         <configuration>
                             <sources>
-                                <source>src/main/${trino.version}</source>
+                                <source>src/main/${trino.shade.version}</source>
                             </sources>
                         </configuration>
                     </execution>

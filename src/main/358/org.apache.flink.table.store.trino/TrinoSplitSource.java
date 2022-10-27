@@ -18,22 +18,20 @@
 
 package org.apache.flink.table.store.trino;
 
-import io.trino.spi.connector.ConnectorSession;
-import io.trino.spi.connector.ConnectorSplitSource;
-import io.trino.spi.connector.ConnectorTableHandle;
-import io.trino.spi.connector.ConnectorTransactionHandle;
-import io.trino.spi.connector.Constraint;
-import io.trino.spi.connector.DynamicFilter;
+import io.trino.spi.connector.ConnectorPartitionHandle;
 
-public class TrinoSplitManager extends TrinoSplitManagerBase {
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+public class TrinoSplitSource extends TrinoSplitSourceBase {
+
+    public TrinoSplitSource(List<TrinoSplit> splits) {
+        super(splits);
+    }
 
     @Override
-    public ConnectorSplitSource getSplits(
-            ConnectorTransactionHandle transaction,
-            ConnectorSession session,
-            ConnectorTableHandle table,
-            DynamicFilter dynamicFilter,
-            Constraint constraint) {
-        return getSplits(table);
+    public CompletableFuture<ConnectorSplitBatch> getNextBatch(
+            ConnectorPartitionHandle partitionHandle, int maxSize) {
+        return innerGetNextBatch(maxSize);
     }
 }
