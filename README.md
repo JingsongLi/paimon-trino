@@ -9,6 +9,7 @@ Building Table Store Trino Bundled Jar is by running:
 - Trino 388: `mvn clean install -DskipTests` , (JDK 11 required).
 - Trino 358: `mvn clean install -DskipTests -Ptrino-358` , (JDK 11 required).
 - Trino 391: `mvn clean install -DskipTests -Ptrino-391` , (JDK 17 required and your jvm options should add: `--add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED` ).
+- Trino 391+: You can change `target.java.version` to `17`, and `trino.version` to trino version, and `mvn clean install -DskipTests`.
 
 Then, copy `target/flink-table-store-trino-*.jar` and [flink-shaded-hadoop-2-uber-2.8.3-10.0.jar](https://repo.maven.apache.org/maven2/org/apache/flink/flink-shaded-hadoop-2-uber/2.8.3-10.0/flink-shaded-hadoop-2-uber-2.8.3-10.0.jar)
 to `plugin/tablestore`.
