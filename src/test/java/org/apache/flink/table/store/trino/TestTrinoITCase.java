@@ -99,12 +99,12 @@ public class TestTrinoITCase extends AbstractTestQueryFramework {
                                     new HashMap<>(),
                                     ""));
             FileStoreTable table = FileStoreTableFactory.create(tablePath3);
-            TableWrite writer = table.newWrite();
+            TableWrite writer = table.newWrite("user");
             TableCommit commit = table.newCommit("user");
             writer.write(GenericRowData.of(StringData.fromString("1"), 1, 1L, 1L, 1));
             writer.write(GenericRowData.of(StringData.fromString("1"), 1, 2L, 2L, 2));
             writer.write(GenericRowData.of(StringData.fromString("2"), 3, 3L, 3L, 3));
-            commit.commit("", writer.prepareCommit(true));
+            commit.commit(0, writer.prepareCommit(true, 0));
         }
 
         {
@@ -124,14 +124,14 @@ public class TestTrinoITCase extends AbstractTestQueryFramework {
                                     new HashMap<>(),
                                     ""));
             FileStoreTable table = FileStoreTableFactory.create(tablePath4);
-            TableWrite writer = table.newWrite();
+            TableWrite writer = table.newWrite("user");
             TableCommit commit = table.newCommit("user");
             writer.write(GenericRowData.of(1, new GenericMapData(new HashMap<>() {
                 {
                     put(StringData.fromString("1"), StringData.fromString("2"));
                 }
             })));
-            commit.commit("", writer.prepareCommit(true));
+            commit.commit(0, writer.prepareCommit(true, 0));
         }
 
         DistributedQueryRunner queryRunner = null;

@@ -48,8 +48,9 @@ public class SimpleTableTestHelper {
                                 new HashMap<>(),
                                 ""));
         FileStoreTable table = FileStoreTableFactory.create(path);
-        this.writer = table.newWrite();
-        this.commit = table.newCommit("user");
+        String user = "user";
+        this.writer = table.newWrite(user);
+        this.commit = table.newCommit(user);
     }
 
     public void write(RowData row) throws Exception {
@@ -57,6 +58,6 @@ public class SimpleTableTestHelper {
     }
 
     public void commit() throws Exception {
-        commit.commit(UUID.randomUUID().toString(), writer.prepareCommit(true));
+        commit.commit(0, writer.prepareCommit(true, 0));
     }
 }

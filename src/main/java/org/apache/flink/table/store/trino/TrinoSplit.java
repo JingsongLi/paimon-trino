@@ -39,11 +39,11 @@ public class TrinoSplit implements ConnectorSplit {
     }
 
     public static TrinoSplit fromSplit(Split split) {
-        return new TrinoSplit(EncodingUtils.encodeObjectToString(split, Split::serialize));
+        return new TrinoSplit(EncodingUtils.encodeObjectToString(split));
     }
 
     public Split decodeSplit() {
-        return EncodingUtils.decodeStringToObject(splitSerialized, Split::deserialize);
+        return EncodingUtils.decodeStringToObject(splitSerialized);
     }
 
     @JsonProperty

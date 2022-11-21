@@ -47,7 +47,7 @@ public abstract class TrinoSplitManagerBase implements ConnectorSplitManager {
         new TrinoFilterConverter(tableSchema.logicalRowType())
                 .convert(tableHandle.getFilter())
                 .ifPresent(tableScan::withFilter);
-        List<Split> splits = tableScan.plan().splits;
+        List<Split> splits = tableScan.plan().splits();
         return new TrinoSplitSource(
                 splits.stream().map(TrinoSplit::fromSplit).collect(Collectors.toList()));
     }

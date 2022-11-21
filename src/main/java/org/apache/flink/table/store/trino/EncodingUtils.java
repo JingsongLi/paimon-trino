@@ -18,10 +18,7 @@
 
 package org.apache.flink.table.store.trino;
 
-import org.apache.flink.core.memory.DataInputDeserializer;
-import org.apache.flink.core.memory.DataInputView;
-import org.apache.flink.core.memory.DataOutputSerializer;
-import org.apache.flink.core.memory.DataOutputView;
+import org.apache.flink.util.InstantiationUtil;
 
 import java.util.Base64;
 
@@ -35,32 +32,21 @@ public class EncodingUtils {
 
     private static final Base64.Decoder BASE64_DECODER = java.util.Base64.getUrlDecoder();
 
-    public static <T> String encodeObjectToString(T t, Serialize<T> serialize) {
+    public static <T> String encodeObjectToString(T t) {
         try {
-            DataOutputSerializer out = new DataOutputSerializer(128);
-            serialize.apply(t, out);
-            return new String(BASE64_ENCODER.encode(out.getCopyOfBuffer()), UTF_8);
+            byte[] bytes = InstantiationUtil.serializeObject(t);
+            return new String(BASE64_ENCODER.encode(bytes), UTF_8);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static <T> T decodeStringToObject(String encodedStr, Deserialize<T> deserialize) {
+    public static <T> T decodeStringToObject(String encodedStr) {
         final byte[] bytes = BASE64_DECODER.decode(encodedStr.getBytes(UTF_8));
         try {
-            return deserialize.apply(new DataInputDeserializer(bytes));
+            return InstantiationUtil.deserializeObject(bytes, EncodingUtils.class.getClassLoader());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    /** Serializer. */
-    public interface Serialize<T> {
-        void apply(T t, DataOutputView out) throws Exception;
-    }
-
-    /** Deserializer. */
-    public interface Deserialize<T> {
-        T apply(DataInputView in) throws Exception;
     }
 }
