@@ -95,7 +95,7 @@ public class TrinoTypeUtils {
 
         @Override
         public Type visit(DecimalType decimalType) {
-            return VarbinaryType.VARBINARY;
+            return io.trino.spi.type.DecimalType.createDecimalType(decimalType.getPrecision(), decimalType.getScale());
         }
 
         @Override
