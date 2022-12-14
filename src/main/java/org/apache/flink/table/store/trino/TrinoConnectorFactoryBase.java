@@ -19,17 +19,14 @@
 package org.apache.flink.table.store.trino;
 
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.core.fs.FileSystem;
-import org.apache.flink.core.plugin.PluginUtils;
-import org.apache.flink.runtime.security.SecurityConfiguration;
-import org.apache.flink.runtime.security.SecurityUtils;
+import org.apache.flink.table.store.file.catalog.CatalogFactory;
+import org.apache.flink.table.store.filesystem.FileSystems;
+
+import java.util.Map;
 
 import io.trino.spi.connector.Connector;
 import io.trino.spi.connector.ConnectorContext;
 import io.trino.spi.connector.ConnectorFactory;
-
-
-import java.util.Map;
 
 /** Trino {@link ConnectorFactory}. */
 public abstract class TrinoConnectorFactoryBase implements ConnectorFactory {
@@ -43,13 +40,7 @@ public abstract class TrinoConnectorFactoryBase implements ConnectorFactory {
             String catalogName, Map<String, String> config, ConnectorContext context) {
         Configuration configuration = Configuration.fromMap(config);
         // initialize file system
-        FileSystem.initialize(
-                configuration, PluginUtils.createPluginManagerFromRootFolder(configuration));
-        try {
-            SecurityUtils.install(new SecurityConfiguration(configuration));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        FileSystems.initialize(CatalogFactory.warehouse(configuration), configuration);
         return new TrinoConnector(
                 new TrinoMetadata(configuration),
                 new TrinoSplitManager(),
