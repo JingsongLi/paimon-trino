@@ -27,6 +27,8 @@ import org.apache.flink.table.data.binary.BinaryStringData;
 import org.apache.flink.table.store.file.utils.RecordReader;
 import org.apache.flink.table.store.file.utils.RecordReader.RecordIterator;
 import org.apache.flink.table.store.utils.RowDataUtils;
+import org.apache.flink.table.types.logical.BinaryType;
+import org.apache.flink.table.types.logical.CharType;
 import org.apache.flink.table.types.logical.LogicalType;
 
 import io.airlift.slice.Slice;
@@ -200,7 +202,7 @@ public abstract class TrinoPageSourceBase implements ConnectorPageSource {
     }
 
     private static void writeSlice(BlockBuilder output, Type type, Object value) {
-        if (type instanceof VarcharType) {
+        if (type instanceof VarcharType || type instanceof io.trino.spi.type.CharType) {
             type.writeSlice(output, wrappedBuffer(((BinaryStringData) value).toBytes()));
         } else if (type instanceof VarbinaryType) {
             type.writeSlice(output, wrappedBuffer((byte[]) value));
