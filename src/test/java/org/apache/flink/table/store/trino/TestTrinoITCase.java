@@ -177,6 +177,11 @@ public class TestTrinoITCase extends AbstractTestQueryFramework {
     }
 
     @Test
+    public void testSystemTable() {
+        assertThat(sql("SELECT snapshot_id,schema_id,commit_user,commit_identifier,commit_kind FROM \"t1$snapshots\"")).isEqualTo("[[1, 0, user, 0, APPEND]]");
+    }
+
+    @Test
     public void testFilter() {
         assertThat(sql("SELECT a, c FROM tablestore.default.t2 WHERE a < 4"))
                 .isEqualTo("[[1, 1], [3, 2]]");

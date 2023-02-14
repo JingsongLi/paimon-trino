@@ -18,9 +18,8 @@
 
 package org.apache.flink.table.store.trino;
 
-import org.apache.flink.core.fs.Path;
-import org.apache.flink.table.store.file.schema.SchemaManager;
-import org.apache.flink.table.store.file.schema.TableSchema;
+import org.apache.flink.table.store.table.Table;
+import org.apache.flink.util.InstantiationUtil;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -31,6 +30,8 @@ import io.trino.spi.connector.ConnectorTableMetadata;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.predicate.TupleDomain;
 
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -41,30 +42,27 @@ import java.util.stream.Collectors;
 public final class TrinoTableHandle implements ConnectorTableHandle {
     private final String schemaName;
     private final String tableName;
-    private final String location;
-    private final long tableSchemaId;
+    private final byte[] serializedTable;
     private final TupleDomain<TrinoColumnHandle> filter;
     private final Optional<List<ColumnHandle>> projectedColumns;
 
-    private TableSchema tableSchema;
+    private Table lazyTable;
 
     public TrinoTableHandle(
-            String schemaName, String tableName, String location, long tableSchemaId) {
-        this(schemaName, tableName, location, tableSchemaId, TupleDomain.all(), Optional.empty());
+            String schemaName, String tableName, byte[] serializedTable) {
+        this(schemaName, tableName, serializedTable, TupleDomain.all(), Optional.empty());
     }
 
     @JsonCreator
     public TrinoTableHandle(
             @JsonProperty("schemaName") String schemaName,
             @JsonProperty("tableName") String tableName,
-            @JsonProperty("location") String location,
-            @JsonProperty("tableSchemaId") long tableSchemaId,
+            @JsonProperty("serializedTable") byte[] serializedTable,
             @JsonProperty("filter") TupleDomain<TrinoColumnHandle> filter,
             @JsonProperty("projection") Optional<List<ColumnHandle>> projectedColumns) {
         this.schemaName = schemaName;
         this.tableName = tableName;
-        this.location = location;
-        this.tableSchemaId = tableSchemaId;
+        this.serializedTable = serializedTable;
         this.filter = filter;
         this.projectedColumns = projectedColumns;
     }
@@ -80,13 +78,8 @@ public final class TrinoTableHandle implements ConnectorTableHandle {
     }
 
     @JsonProperty
-    public String getLocation() {
-        return location;
-    }
-
-    @JsonProperty
-    public long getTableSchemaId() {
-        return tableSchemaId;
+    public byte[] getSerializedTable() {
+        return serializedTable;
     }
 
     @JsonProperty
@@ -101,19 +94,23 @@ public final class TrinoTableHandle implements ConnectorTableHandle {
 
     public TrinoTableHandle copy(TupleDomain<TrinoColumnHandle> filter) {
         return new TrinoTableHandle(
-                schemaName, tableName, location, tableSchemaId, filter, projectedColumns);
+                schemaName, tableName, serializedTable, filter, projectedColumns);
     }
 
     public TrinoTableHandle copy(Optional<List<ColumnHandle>> projectedColumns) {
         return new TrinoTableHandle(
-                schemaName, tableName, location, tableSchemaId, filter, projectedColumns);
+                schemaName, tableName, serializedTable, filter, projectedColumns);
     }
 
-    public TableSchema tableSchema() {
-        if (tableSchema == null) {
-            tableSchema = new SchemaManager(new Path(location)).schema(tableSchemaId);
+    public Table table() {
+        if (lazyTable == null) {
+            try {
+                lazyTable = InstantiationUtil.deserializeObject(serializedTable, this.getClass().getClassLoader());
+            } catch (IOException | ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            }
         }
-        return tableSchema;
+        return lazyTable;
     }
 
     public ConnectorTableMetadata tableMetadata() {
@@ -121,27 +118,27 @@ public final class TrinoTableHandle implements ConnectorTableHandle {
                 SchemaTableName.schemaTableName(schemaName, tableName),
                 columnMetadatas(),
                 Collections.emptyMap(),
-                Optional.ofNullable(tableSchema().comment()));
+                Optional.empty());
     }
 
     public List<ColumnMetadata> columnMetadatas() {
-        return tableSchema().fields().stream()
+        return table().rowType().getFields().stream()
                 .map(
                         column ->
                                 ColumnMetadata.builder()
-                                        .setName(column.name())
+                                        .setName(column.getName())
                                         .setType(
                                                 TrinoTypeUtils.fromFlinkType(
-                                                        column.type().logicalType()))
-                                        .setNullable(column.type().logicalType().isNullable())
-                                        .setComment(Optional.ofNullable(column.description()))
+                                                        column.getType()))
+                                        .setNullable(column.getType().isNullable())
+                                        .setComment(column.getDescription())
                                         .build())
                 .collect(Collectors.toList());
     }
 
     public TrinoColumnHandle columnHandle(String field) {
-        int index = tableSchema().fieldNames().indexOf(field);
-        return TrinoColumnHandle.of(field, tableSchema().fields().get(index).type().logicalType());
+        int index = table().rowType().getFieldNames().indexOf(field);
+        return TrinoColumnHandle.of(field, table().rowType().getTypeAt(index));
     }
 
     @Override
@@ -153,10 +150,9 @@ public final class TrinoTableHandle implements ConnectorTableHandle {
             return false;
         }
         TrinoTableHandle that = (TrinoTableHandle) o;
-        return tableSchemaId == that.tableSchemaId
+        return Arrays.equals(serializedTable, that.serializedTable)
                 && Objects.equals(schemaName, that.schemaName)
                 && Objects.equals(tableName, that.tableName)
-                && Objects.equals(location, that.location)
                 && Objects.equals(filter, that.filter)
                 && Objects.equals(projectedColumns, that.projectedColumns);
     }
@@ -164,6 +160,10 @@ public final class TrinoTableHandle implements ConnectorTableHandle {
     @Override
     public int hashCode() {
         return Objects.hash(
-                schemaName, tableName, location, tableSchemaId, filter, projectedColumns);
+                schemaName,
+                tableName,
+                filter,
+                projectedColumns,
+                Arrays.hashCode(serializedTable));
     }
 }

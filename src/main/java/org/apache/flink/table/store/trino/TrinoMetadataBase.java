@@ -22,7 +22,7 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.table.catalog.ObjectPath;
 import org.apache.flink.table.store.file.catalog.Catalog;
 import org.apache.flink.table.store.file.catalog.CatalogFactory;
-import org.apache.flink.table.store.file.schema.TableSchema;
+import org.apache.flink.util.InstantiationUtil;
 
 import io.trino.spi.connector.Assignment;
 import io.trino.spi.connector.ColumnHandle;
@@ -38,9 +38,11 @@ import io.trino.spi.connector.ProjectionApplicationResult;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.SchemaTablePrefix;
 import io.trino.spi.expression.ConnectorExpression;
-import io.trino.spi.expression.Variable;
 import io.trino.spi.predicate.TupleDomain;
 
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -50,7 +52,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
-import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
@@ -86,18 +87,19 @@ public abstract class TrinoMetadataBase implements ConnectorMetadata {
 
     public TrinoTableHandle getTableHandle(SchemaTableName tableName) {
         ObjectPath tablePath = new ObjectPath(tableName.getSchemaName(), tableName.getTableName());
-        TableSchema tableSchema;
+        byte[] serializedTable;
         try {
-            tableSchema = catalog.getTableSchema(tablePath);
+            serializedTable = InstantiationUtil.serializeObject(catalog.getTable(tablePath));
         } catch (Catalog.TableNotExistException e) {
             return null;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
 
         return new TrinoTableHandle(
                 tableName.getSchemaName(),
                 tableName.getTableName(),
-                catalog.getTableLocation(tablePath).toString(),
-                tableSchema.id());
+                serializedTable);
     }
 
     @Override

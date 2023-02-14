@@ -18,10 +18,9 @@
 
 package org.apache.flink.table.store.trino;
 
-import org.apache.flink.core.fs.Path;
-import org.apache.flink.table.store.file.schema.TableSchema;
-import org.apache.flink.table.store.table.FileStoreTableFactory;
+import org.apache.flink.table.store.table.Table;
 import org.apache.flink.table.store.table.source.TableRead;
+import org.apache.flink.table.types.logical.RowType;
 
 import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ConnectorPageSource;
@@ -54,12 +53,11 @@ public class TrinoPageSourceProvider implements ConnectorPageSourceProvider {
                 TrinoPageSourceProvider.class.getClassLoader());
     }
 
-    private ConnectorPageSource createPageSource(TrinoTableHandle table, TrinoSplit split, List<ColumnHandle> columns) {
-        TableSchema tableSchema = table.tableSchema();
-        TableRead read =
-                FileStoreTableFactory.create(new Path(table.getLocation()), tableSchema)
-                        .newRead();
-        List<String> fieldNames = tableSchema.fieldNames();
+    private ConnectorPageSource createPageSource(TrinoTableHandle tableHandle, TrinoSplit split, List<ColumnHandle> columns) {
+        Table table = tableHandle.table();
+        TableRead read = table.newRead();
+        RowType rowType = table.rowType();
+        List<String> fieldNames = rowType.getFieldNames();
         List<String> projectedFields =
                 columns.stream()
                         .map(TrinoColumnHandle.class::cast)
@@ -70,8 +68,8 @@ public class TrinoPageSourceProvider implements ConnectorPageSourceProvider {
             read.withProjection(projected);
         }
 
-        new TrinoFilterConverter(tableSchema.logicalRowType())
-                .convert(table.getFilter())
+        new TrinoFilterConverter(rowType)
+                .convert(tableHandle.getFilter())
                 .ifPresent(read::withFilter);
 
         try {
