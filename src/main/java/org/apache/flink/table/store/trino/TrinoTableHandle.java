@@ -19,6 +19,7 @@
 package org.apache.flink.table.store.trino;
 
 import org.apache.flink.table.store.table.Table;
+import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.util.InstantiationUtil;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -137,10 +138,10 @@ public final class TrinoTableHandle implements ConnectorTableHandle {
     }
 
     public TrinoColumnHandle columnHandle(String field) {
-        int index = table().rowType().getFieldNames().indexOf(field);
+        List<String> fieldNames = FieldNameUtils.fieldNames(table().rowType());
+        int index = fieldNames.indexOf(field);
         if (index == -1) {
-            throw new RuntimeException(String.format("Cannot find field %s in schema %s",
-                    field, table().rowType().getFieldNames()));
+            throw new RuntimeException(String.format("Cannot find field %s in schema %s", field, fieldNames));
         }
         return TrinoColumnHandle.of(field, table().rowType().getTypeAt(index));
     }

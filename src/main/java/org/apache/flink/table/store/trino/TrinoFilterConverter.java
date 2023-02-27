@@ -84,10 +84,11 @@ public class TrinoFilterConverter {
 
         Map<TrinoColumnHandle, Domain> domainMap = tupleDomain.getDomains().get();
         List<Predicate> conjuncts = new ArrayList<>();
+        List<String> fieldNames = FieldNameUtils.fieldNames(rowType);
         for (Map.Entry<TrinoColumnHandle, Domain> entry : domainMap.entrySet()) {
             TrinoColumnHandle columnHandle = entry.getKey();
             Domain domain = entry.getValue();
-            int index = rowType.getFieldNames().indexOf(columnHandle.getColumnName());
+            int index = fieldNames.indexOf(columnHandle.getColumnName());
             if (index != -1) {
                 try {
                     conjuncts.add(toPredicate(index, columnHandle.getTrinoType(), domain));

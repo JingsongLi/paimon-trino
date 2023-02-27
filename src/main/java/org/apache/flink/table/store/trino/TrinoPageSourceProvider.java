@@ -57,7 +57,7 @@ public class TrinoPageSourceProvider implements ConnectorPageSourceProvider {
         Table table = tableHandle.table();
         TableRead read = table.newRead();
         RowType rowType = table.rowType();
-        List<String> fieldNames = rowType.getFieldNames();
+        List<String> fieldNames = FieldNameUtils.fieldNames(rowType);
         List<String> projectedFields =
                 columns.stream()
                         .map(TrinoColumnHandle.class::cast)

@@ -158,7 +158,8 @@ public class TestTrinoITCase extends AbstractTestQueryFramework {
                         Arrays.asList(
                                 new RowType.RowField("a", new IntType()),
                                 new RowType.RowField("b", new BigIntType()),
-                                new RowType.RowField("c", new VarCharType()),
+                                // test field name has upper case
+                                new RowType.RowField("aCa", new VarCharType()),
                                 new RowType.RowField("d", new CharType(1))
                                 ));
         return new SimpleTableTestHelper(tablePath, rowType);
@@ -172,7 +173,7 @@ public class TestTrinoITCase extends AbstractTestQueryFramework {
     @Test
     public void testProjection() {
         assertThat(sql("SELECT * FROM tablestore.default.t1")).isEqualTo("[[1, 2, 1, 1], [5, 6, 3, 3]]");
-        assertThat(sql("SELECT a, c FROM tablestore.default.t1")).isEqualTo("[[1, 1], [5, 3]]");
+        assertThat(sql("SELECT a, aCa FROM tablestore.default.t1")).isEqualTo("[[1, 1], [5, 3]]");
         assertThat(sql("SELECT SUM(b) FROM tablestore.default.t1")).isEqualTo("[[8]]");
     }
 
@@ -183,7 +184,7 @@ public class TestTrinoITCase extends AbstractTestQueryFramework {
 
     @Test
     public void testFilter() {
-        assertThat(sql("SELECT a, c FROM tablestore.default.t2 WHERE a < 4"))
+        assertThat(sql("SELECT a, aCa FROM tablestore.default.t2 WHERE a < 4"))
                 .isEqualTo("[[1, 1], [3, 2]]");
     }
 
