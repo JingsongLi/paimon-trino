@@ -194,6 +194,14 @@ under the License.
             </properties>
         </profile>
         <profile>
+            <id>trino-385</id>
+            <properties>
+                <trino.version>385</trino.version>
+                <trino.shade.version>385</trino.shade.version>
+                <target.java.version>11</target.java.version>
+            </properties>
+        </profile>
+        <profile>
             <id>trino-391</id>
             <properties>
                 <trino.version>391</trino.version>
