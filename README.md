@@ -8,8 +8,10 @@ Building Table Store Trino Bundled Jar is by running:
 
 - Trino 388: `mvn clean install -DskipTests` , (JDK 11 required).
 - Trino 358: `mvn clean install -DskipTests -Ptrino-358` , (JDK 11 required).
-- Trino 391: `mvn clean install -DskipTests -Ptrino-391` , (JDK 17 required and your jvm options should add: `--add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED` ).
+- Trino 391: `mvn clean install -DskipTests -Ptrino-391` , (JDK 17 required).
 - Trino 391+: You can change `target.java.version` to `17`, and `trino.version` to trino version, and `mvn clean install -DskipTests`. Use JDK 17 and add jvm options like trino 391.
+
+NOTE: For JDK 17,  when [Deploying Trino](https://trino.io/docs/current/installation/deployment.html), should add jvm options: `--add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED`
 
 Then, copy `target/flink-table-store-trino-*.jar` and [flink-shaded-hadoop-2-uber-2.8.3-10.0.jar](https://repo.maven.apache.org/maven2/org/apache/flink/flink-shaded-hadoop-2-uber/2.8.3-10.0/flink-shaded-hadoop-2-uber-2.8.3-10.0.jar)
 to `plugin/tablestore`.
@@ -31,12 +33,12 @@ If you are using HDFS, choose one of the following ways to configure your HDFS:
 - set environment variable `HADOOP_CONF_DIR`.
 - configure `fs.hdfs.hadoopconf` in the properties.
 
-You can configure kerberos keytag file when using KERBEROS authentication in the properties.
-```
-security.kerberos.login.principal=hadoop-user
-security.kerberos.login.keytab=/etc/trino/hdfs.keytab
-```
-Keytab files must be distributed to every node in the cluster that runs Trino.
+## Security
+
+You can refer to [Trino Security](https://trino.io/docs/current/security.html). For example:
+
+- [Trino Kerberos](https://trino.io/docs/current/security/kerberos.html).
+- [File-based access control](https://trino.io/docs/current/security/file-system-access-control.html).
 
 ## Query
 
