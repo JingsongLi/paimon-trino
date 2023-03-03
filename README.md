@@ -37,8 +37,11 @@ If you are using HDFS, choose one of the following ways to configure your HDFS:
 
 You can refer to [Trino Security](https://trino.io/docs/current/security.html). For example:
 
-- [Trino Kerberos](https://trino.io/docs/current/security/kerberos.html).
-- [File-based access control](https://trino.io/docs/current/security/file-system-access-control.html).
+Using [Trino Kerberos](https://trino.io/docs/current/security/kerberos.html).
+
+Using [File-based access control](https://trino.io/docs/current/security/file-system-access-control.html).
+- set `tablestore.security` to `file`.
+- set `security.config-file` to your config file path.
 
 ## Query
 
