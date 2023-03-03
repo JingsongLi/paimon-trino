@@ -24,9 +24,16 @@ import org.apache.flink.table.store.filesystem.FileSystems;
 
 import java.util.Map;
 
+import io.airlift.bootstrap.Bootstrap;
+import io.trino.plugin.base.CatalogName;
+import io.trino.plugin.base.jmx.ConnectorObjectNameGeneratorModule;
+import io.trino.spi.NodeManager;
+import io.trino.spi.PageIndexerFactory;
+import io.trino.spi.classloader.ThreadContextClassLoader;
 import io.trino.spi.connector.Connector;
 import io.trino.spi.connector.ConnectorContext;
 import io.trino.spi.connector.ConnectorFactory;
+import io.trino.spi.type.TypeManager;
 
 /** Trino {@link ConnectorFactory}. */
 public abstract class TrinoConnectorFactoryBase implements ConnectorFactory {
@@ -38,12 +45,25 @@ public abstract class TrinoConnectorFactoryBase implements ConnectorFactory {
     @Override
     public Connector create(
             String catalogName, Map<String, String> config, ConnectorContext context) {
-        Configuration configuration = Configuration.fromMap(config);
-        // initialize file system
-        FileSystems.initialize(CatalogFactory.warehouse(configuration), configuration);
-        return new TrinoConnector(
-                new TrinoMetadata(configuration),
-                new TrinoSplitManager(),
-                new TrinoPageSourceProvider());
+        ClassLoader classLoader = TrinoConnectorFactoryBase.class.getClassLoader();
+        try (ThreadContextClassLoader ignored = new ThreadContextClassLoader(classLoader)) {
+            Bootstrap app = new Bootstrap(
+                    new TrinoSecurityModule(),
+                    binder -> {
+                        binder.bind(NodeManager.class).toInstance(context.getNodeManager());
+                        binder.bind(TypeManager.class).toInstance(context.getTypeManager());
+                        binder.bind(PageIndexerFactory.class).toInstance(context.getPageIndexerFactory());
+                        binder.bind(CatalogName.class).toInstance(new CatalogName(catalogName));
+                    });
+            app.doNotInitializeLogging().setOptionalConfigurationProperties(config).initialize();
+
+            Configuration configuration = Configuration.fromMap(config);
+            // initialize file system
+            FileSystems.initialize(CatalogFactory.warehouse(configuration), configuration);
+            return new TrinoConnector(
+                    new TrinoMetadata(configuration),
+                    new TrinoSplitManager(),
+                    new TrinoPageSourceProvider());
+        }
     }
 }

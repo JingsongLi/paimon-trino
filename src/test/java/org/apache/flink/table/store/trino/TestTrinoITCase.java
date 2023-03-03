@@ -41,6 +41,8 @@ import io.trino.testing.MaterializedResult;
 import io.trino.testing.QueryRunner;
 import org.testng.annotations.Test;
 
+
+import java.io.File;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collections;
@@ -50,6 +52,7 @@ import java.util.UUID;
 
 import static io.airlift.testing.Closeables.closeAllSuppress;
 import static io.trino.testing.TestingSession.testSessionBuilder;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.flink.table.data.StringData.fromString;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -144,6 +147,13 @@ public class TestTrinoITCase extends AbstractTestQueryFramework {
             queryRunner.installPlugin(new TrinoPlugin());
             Map<String, String> options = new HashMap<>();
             options.put("warehouse", warehouse);
+
+            // test security file
+            File tempFile = File.createTempFile("test-iceberg-plugin-access-control", ".json");
+            tempFile.deleteOnExit();
+            Files.write(tempFile.toPath(), "{}".getBytes(UTF_8));
+            options.put("tablestore.security", "file");
+            options.put("security.config-file", tempFile.getAbsolutePath());
             queryRunner.createCatalog(CATALOG, CATALOG, options);
             return queryRunner;
         } catch (Throwable e) {
