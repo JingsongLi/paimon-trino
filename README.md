@@ -33,13 +33,6 @@ If you are using HDFS, choose one of the following ways to configure your HDFS:
 - set environment variable `HADOOP_CONF_DIR`.
 - configure `fs.hdfs.hadoopconf` in the properties.
 
-## Security
-
-You can refer to [Trino Security](https://trino.io/docs/current/security.html). For example:
-
-- [Trino Kerberos](https://trino.io/docs/current/security/kerberos.html).
-- [File-based access control](https://trino.io/docs/current/security/file-system-access-control.html).
-
 ## Query
 
 ```
