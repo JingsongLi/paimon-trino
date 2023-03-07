@@ -34,7 +34,6 @@ import io.trino.spi.type.BigintType;
 import io.trino.spi.type.BooleanType;
 import io.trino.spi.type.DateType;
 import io.trino.spi.type.DecimalType;
-import io.trino.spi.type.Decimals;
 import io.trino.spi.type.DoubleType;
 import io.trino.spi.type.IntegerType;
 import io.trino.spi.type.LongTimestampWithTimeZone;
@@ -242,7 +241,7 @@ public class TrinoFilterConverter {
         if (type instanceof DecimalType) {
             DecimalType decimalType = (DecimalType) type;
             BigDecimal bigDecimal;
-            if (Decimals.isShortDecimal(decimalType)) {
+            if (trinoNativeValue instanceof Long) {
                 bigDecimal =
                         BigDecimal.valueOf((long) trinoNativeValue)
                                 .movePointLeft(decimalType.getScale());

@@ -209,6 +209,14 @@ under the License.
                 <target.java.version>17</target.java.version>
             </properties>
         </profile>
+        <profile>
+            <id>trino-409</id>
+            <properties>
+                <trino.version>409</trino.version>
+                <trino.shade.version>388</trino.shade.version>
+                <target.java.version>17</target.java.version>
+            </properties>
+        </profile>
     </profiles>
 
     <build>

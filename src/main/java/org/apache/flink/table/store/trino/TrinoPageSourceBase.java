@@ -27,8 +27,6 @@ import org.apache.flink.table.data.binary.BinaryStringData;
 import org.apache.flink.table.store.file.utils.RecordReader;
 import org.apache.flink.table.store.file.utils.RecordReader.RecordIterator;
 import org.apache.flink.table.store.utils.RowDataUtils;
-import org.apache.flink.table.types.logical.BinaryType;
-import org.apache.flink.table.types.logical.CharType;
 import org.apache.flink.table.types.logical.LogicalType;
 
 import io.airlift.slice.Slice;
@@ -54,15 +52,12 @@ import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import static io.airlift.slice.Slices.wrappedBuffer;
 import static io.trino.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
 import static io.trino.spi.type.BigintType.BIGINT;
 import static io.trino.spi.type.DateType.DATE;
 import static io.trino.spi.type.Decimals.encodeShortScaledValue;
-import static io.trino.spi.type.Decimals.isLongDecimal;
-import static io.trino.spi.type.Decimals.isShortDecimal;
 import static io.trino.spi.type.IntegerType.INTEGER;
 import static io.trino.spi.type.LongTimestampWithTimeZone.fromEpochMillisAndFraction;
 import static io.trino.spi.type.TimeType.TIME_MICROS;
@@ -164,7 +159,6 @@ public abstract class TrinoPageSourceBase implements ConnectorPageSource {
             } else if (type.equals(INTEGER)) {
                 type.writeLong(output, ((Number) value).intValue());
             } else if (type instanceof DecimalType) {
-                verify(isShortDecimal(type), "The type should be short decimal");
                 DecimalType decimalType = (DecimalType) type;
                 BigDecimal decimal = ((DecimalData) value).toBigDecimal();
                 type.writeLong(output, encodeShortScaledValue(decimal, decimalType.getScale()));
@@ -214,7 +208,6 @@ public abstract class TrinoPageSourceBase implements ConnectorPageSource {
 
     private static void writeObject(BlockBuilder output, Type type, Object value) {
         if (type instanceof DecimalType) {
-            verify(isLongDecimal(type), "The type should be long decimal");
             DecimalType decimalType = (DecimalType) type;
             BigDecimal decimal = ((DecimalData) value).toBigDecimal();
             type.writeObject(output, Decimals.encodeScaledValue(decimal, decimalType.getScale()));
