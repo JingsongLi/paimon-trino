@@ -18,16 +18,17 @@
 
 package org.apache.flink.table.store.trino;
 
-import org.apache.flink.table.data.ArrayData;
-import org.apache.flink.table.data.DecimalData;
-import org.apache.flink.table.data.MapData;
-import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.data.TimestampData;
-import org.apache.flink.table.data.binary.BinaryStringData;
-import org.apache.flink.table.store.file.utils.RecordReader;
-import org.apache.flink.table.store.file.utils.RecordReader.RecordIterator;
+import org.apache.flink.table.store.data.BinaryString;
+import org.apache.flink.table.store.data.Decimal;
+import org.apache.flink.table.store.data.InternalArray;
+import org.apache.flink.table.store.data.InternalMap;
+import org.apache.flink.table.store.data.InternalRow;
+import org.apache.flink.table.store.data.Timestamp;
+import org.apache.flink.table.store.reader.RecordReader;
+import org.apache.flink.table.store.reader.RecordReader.RecordIterator;
+import org.apache.flink.table.store.types.DataType;
+import org.apache.flink.table.store.types.DataTypeChecks;
 import org.apache.flink.table.store.utils.RowDataUtils;
-import org.apache.flink.table.types.logical.LogicalType;
 
 import io.airlift.slice.Slice;
 import io.trino.spi.Page;
@@ -71,14 +72,14 @@ import static org.apache.flink.shaded.guava30.com.google.common.base.Verify.veri
 /** Trino {@link ConnectorPageSource}. */
 public abstract class TrinoPageSourceBase implements ConnectorPageSource {
 
-    private final RecordReader<RowData> reader;
+    private final RecordReader<InternalRow> reader;
     private final PageBuilder pageBuilder;
     private final List<Type> columnTypes;
-    private final List<LogicalType> logicalTypes;
+    private final List<DataType> logicalTypes;
 
     private boolean isFinished = false;
 
-    public TrinoPageSourceBase(RecordReader<RowData> reader, List<ColumnHandle> projectedColumns) {
+    public TrinoPageSourceBase(RecordReader<InternalRow> reader, List<ColumnHandle> projectedColumns) {
         this.reader = reader;
         this.columnTypes = new ArrayList<>();
         this.logicalTypes = new ArrayList<>();
@@ -116,12 +117,12 @@ public abstract class TrinoPageSourceBase implements ConnectorPageSource {
     }
 
     private Page nextPage() throws IOException {
-        RecordIterator<RowData> batch = reader.readBatch();
+        RecordIterator<InternalRow> batch = reader.readBatch();
         if (batch == null) {
             isFinished = true;
             return null;
         }
-        RowData row;
+        InternalRow row;
         while ((row = batch.next()) != null) {
             pageBuilder.declarePosition();
             for (int i = 0; i < columnTypes.size(); i++) {
@@ -144,7 +145,7 @@ public abstract class TrinoPageSourceBase implements ConnectorPageSource {
         this.reader.close();
     }
 
-    private void appendTo(Type type, LogicalType logicalType, Object value, BlockBuilder output) {
+    private void appendTo(Type type, DataType logicalType, Object value, BlockBuilder output) {
         if (value == null) {
             output.appendNull();
             return;
@@ -160,14 +161,14 @@ public abstract class TrinoPageSourceBase implements ConnectorPageSource {
                 type.writeLong(output, ((Number) value).intValue());
             } else if (type instanceof DecimalType) {
                 DecimalType decimalType = (DecimalType) type;
-                BigDecimal decimal = ((DecimalData) value).toBigDecimal();
+                BigDecimal decimal = ((Decimal) value).toBigDecimal();
                 type.writeLong(output, encodeShortScaledValue(decimal, decimalType.getScale()));
             } else if (type.equals(DATE)) {
                 type.writeLong(output, (int) value);
             } else if (type.equals(TIMESTAMP_MILLIS)) {
                 type.writeLong(
                         output,
-                        ((TimestampData) value).getMillisecond() * MICROSECONDS_PER_MILLISECOND);
+                        ((Timestamp) value).getMillisecond() * MICROSECONDS_PER_MILLISECOND);
             } else if (type.equals(TIME_MICROS)) {
                 type.writeLong(output, (int) value * MICROSECONDS_PER_MILLISECOND);
             } else {
@@ -183,9 +184,9 @@ public abstract class TrinoPageSourceBase implements ConnectorPageSource {
             writeSlice(output, type, value);
         } else if (javaType == LongTimestampWithTimeZone.class) {
             verify(type.equals(TIMESTAMP_TZ_MILLIS));
-            TimestampData timestampData = (TimestampData) value;
+            Timestamp Timestamp = (Timestamp) value;
             type.writeObject(
-                    output, fromEpochMillisAndFraction(timestampData.getMillisecond(), 0, UTC_KEY));
+                    output, fromEpochMillisAndFraction(Timestamp.getMillisecond(), 0, UTC_KEY));
         } else if (javaType == Block.class) {
             writeBlock(output, type, logicalType, value);
         } else {
@@ -197,7 +198,7 @@ public abstract class TrinoPageSourceBase implements ConnectorPageSource {
 
     private static void writeSlice(BlockBuilder output, Type type, Object value) {
         if (type instanceof VarcharType || type instanceof io.trino.spi.type.CharType) {
-            type.writeSlice(output, wrappedBuffer(((BinaryStringData) value).toBytes()));
+            type.writeSlice(output, wrappedBuffer(((BinaryString) value).toBytes()));
         } else if (type instanceof VarbinaryType) {
             type.writeSlice(output, wrappedBuffer((byte[]) value));
         } else {
@@ -209,7 +210,7 @@ public abstract class TrinoPageSourceBase implements ConnectorPageSource {
     private static void writeObject(BlockBuilder output, Type type, Object value) {
         if (type instanceof DecimalType) {
             DecimalType decimalType = (DecimalType) type;
-            BigDecimal decimal = ((DecimalData) value).toBigDecimal();
+            BigDecimal decimal = ((Decimal) value).toBigDecimal();
             type.writeObject(output, Decimals.encodeScaledValue(decimal, decimalType.getScale()));
         } else {
             throw new TrinoException(
@@ -218,12 +219,12 @@ public abstract class TrinoPageSourceBase implements ConnectorPageSource {
         }
     }
 
-    private void writeBlock(BlockBuilder output, Type type, LogicalType logicalType, Object value) {
+    private void writeBlock(BlockBuilder output, Type type, DataType logicalType, Object value) {
         if (type instanceof ArrayType) {
             BlockBuilder builder = output.beginBlockEntry();
 
-            ArrayData arrayData = (ArrayData) value;
-            LogicalType elementType = logicalType.getChildren().get(0);
+            InternalArray arrayData = (InternalArray) value;
+            DataType elementType = DataTypeChecks.getNestedTypes(logicalType).get(0);
             for (int i = 0; i < arrayData.size(); i++) {
                 appendTo(
                         type.getTypeParameters().get(0),
@@ -236,12 +237,12 @@ public abstract class TrinoPageSourceBase implements ConnectorPageSource {
             return;
         }
         if (type instanceof RowType) {
-            RowData rowData = (RowData) value;
+            InternalRow rowData = (InternalRow) value;
             BlockBuilder builder = output.beginBlockEntry();
             for (int index = 0; index < type.getTypeParameters().size(); index++) {
                 Type fieldType = type.getTypeParameters().get(index);
-                LogicalType fieldLogicalType =
-                        ((org.apache.flink.table.types.logical.RowType) logicalType)
+                DataType fieldLogicalType =
+                        ((org.apache.flink.table.store.types.RowType) logicalType)
                                 .getTypeAt(index);
                 appendTo(
                         fieldType,
@@ -253,11 +254,11 @@ public abstract class TrinoPageSourceBase implements ConnectorPageSource {
             return;
         }
         if (type instanceof MapType) {
-            MapData mapData = (MapData) value;
-            ArrayData keyArray = mapData.keyArray();
-            ArrayData valueArray = mapData.valueArray();
-            LogicalType keyType = ((org.apache.flink.table.types.logical.MapType) logicalType).getKeyType();
-            LogicalType valueType = ((org.apache.flink.table.types.logical.MapType) logicalType).getValueType();
+            InternalMap mapData = (InternalMap) value;
+            InternalArray keyArray = mapData.keyArray();
+            InternalArray valueArray = mapData.valueArray();
+            DataType keyType = ((org.apache.flink.table.store.types.MapType) logicalType).getKeyType();
+            DataType valueType = ((org.apache.flink.table.store.types.MapType) logicalType).getValueType();
             BlockBuilder builder = output.beginBlockEntry();
             for (int i = 0; i < keyArray.size(); i++) {
                 appendTo(

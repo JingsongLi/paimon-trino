@@ -18,42 +18,42 @@
 
 package org.apache.flink.table.store.trino;
 
-import org.apache.flink.core.fs.Path;
-import org.apache.flink.table.data.RowData;
+import org.apache.flink.table.store.data.InternalRow;
+import org.apache.flink.table.store.file.schema.Schema;
 import org.apache.flink.table.store.file.schema.SchemaManager;
-import org.apache.flink.table.store.file.schema.UpdateSchema;
+import org.apache.flink.table.store.fs.Path;
+import org.apache.flink.table.store.fs.local.LocalFileIO;
 import org.apache.flink.table.store.table.FileStoreTable;
 import org.apache.flink.table.store.table.FileStoreTableFactory;
-import org.apache.flink.table.store.table.sink.TableCommit;
-import org.apache.flink.table.store.table.sink.TableWrite;
-import org.apache.flink.table.types.logical.RowType;
+import org.apache.flink.table.store.table.sink.InnerTableCommit;
+import org.apache.flink.table.store.table.sink.InnerTableWrite;
+import org.apache.flink.table.store.types.RowType;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.UUID;
 
 /** A simple table test helper to write and commit. */
 public class SimpleTableTestHelper {
 
-    private final TableWrite writer;
-    private final TableCommit commit;
+    private final InnerTableWrite writer;
+    private final InnerTableCommit commit;
 
     public SimpleTableTestHelper(Path path, RowType rowType) throws Exception {
-        new SchemaManager(path)
-                .commitNewVersion(
-                        new UpdateSchema(
-                                rowType,
+        new SchemaManager(LocalFileIO.create(), path)
+                .createTable(
+                        new Schema(
+                                rowType.getFields(),
                                 Collections.emptyList(),
                                 Collections.emptyList(),
                                 new HashMap<>(),
                                 ""));
-        FileStoreTable table = FileStoreTableFactory.create(path);
+        FileStoreTable table = FileStoreTableFactory.create(LocalFileIO.create(), path);
         String user = "user";
         this.writer = table.newWrite(user);
         this.commit = table.newCommit(user);
     }
 
-    public void write(RowData row) throws Exception {
+    public void write(InternalRow row) throws Exception {
         writer.write(row);
     }
 

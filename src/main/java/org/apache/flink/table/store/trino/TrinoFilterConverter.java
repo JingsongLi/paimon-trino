@@ -18,12 +18,12 @@
 
 package org.apache.flink.table.store.trino;
 
-import org.apache.flink.table.data.DecimalData;
-import org.apache.flink.table.data.StringData;
-import org.apache.flink.table.data.TimestampData;
+import org.apache.flink.table.store.data.BinaryString;
+import org.apache.flink.table.store.data.Decimal;
+import org.apache.flink.table.store.data.Timestamp;
 import org.apache.flink.table.store.file.predicate.Predicate;
 import org.apache.flink.table.store.file.predicate.PredicateBuilder;
-import org.apache.flink.table.types.logical.RowType;
+import org.apache.flink.table.store.types.RowType;
 
 import io.airlift.slice.Slice;
 import io.trino.spi.predicate.Domain;
@@ -222,16 +222,16 @@ public class TrinoFilterConverter {
         }
 
         if (type.equals(TIMESTAMP_MILLIS)) {
-            return TimestampData.fromEpochMillis((long) trinoNativeValue / 1000);
+            return Timestamp.fromEpochMillis((long) trinoNativeValue / 1000);
         }
 
         if (type.equals(TIMESTAMP_TZ_MILLIS)) {
-            return TimestampData.fromEpochMillis(
+            return Timestamp.fromEpochMillis(
                     ((LongTimestampWithTimeZone) trinoNativeValue).getEpochMillis());
         }
 
         if (type instanceof VarcharType) {
-            return StringData.fromBytes(((Slice) trinoNativeValue).getBytes());
+            return BinaryString.fromBytes(((Slice) trinoNativeValue).getBytes());
         }
 
         if (type instanceof VarbinaryType) {
@@ -250,7 +250,7 @@ public class TrinoFilterConverter {
                         new BigDecimal(
                                 DecimalUtils.toBigInteger(trinoNativeValue), decimalType.getScale());
             }
-            return DecimalData.fromBigDecimal(
+            return Decimal.fromBigDecimal(
                     bigDecimal, decimalType.getPrecision(), decimalType.getScale());
         }
 

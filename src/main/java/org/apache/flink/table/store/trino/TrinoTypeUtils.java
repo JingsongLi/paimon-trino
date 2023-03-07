@@ -18,29 +18,6 @@
 
 package org.apache.flink.table.store.trino;
 
-import org.apache.flink.table.types.logical.ArrayType;
-import org.apache.flink.table.types.logical.BigIntType;
-import org.apache.flink.table.types.logical.BinaryType;
-import org.apache.flink.table.types.logical.BooleanType;
-import org.apache.flink.table.types.logical.CharType;
-import org.apache.flink.table.types.logical.DateType;
-import org.apache.flink.table.types.logical.DecimalType;
-import org.apache.flink.table.types.logical.DoubleType;
-import org.apache.flink.table.types.logical.FloatType;
-import org.apache.flink.table.types.logical.IntType;
-import org.apache.flink.table.types.logical.LocalZonedTimestampType;
-import org.apache.flink.table.types.logical.LogicalType;
-import org.apache.flink.table.types.logical.MapType;
-import org.apache.flink.table.types.logical.MultisetType;
-import org.apache.flink.table.types.logical.RowType;
-import org.apache.flink.table.types.logical.SmallIntType;
-import org.apache.flink.table.types.logical.TimeType;
-import org.apache.flink.table.types.logical.TimestampType;
-import org.apache.flink.table.types.logical.TinyIntType;
-import org.apache.flink.table.types.logical.VarBinaryType;
-import org.apache.flink.table.types.logical.VarCharType;
-import org.apache.flink.table.types.logical.utils.LogicalTypeDefaultVisitor;
-
 import io.trino.spi.type.BigintType;
 import io.trino.spi.type.IntegerType;
 import io.trino.spi.type.RealType;
@@ -52,17 +29,41 @@ import io.trino.spi.type.TypeOperators;
 import io.trino.spi.type.VarbinaryType;
 import io.trino.spi.type.VarcharType;
 
+import org.apache.flink.table.store.types.ArrayType;
+import org.apache.flink.table.store.types.BigIntType;
+import org.apache.flink.table.store.types.BinaryType;
+import org.apache.flink.table.store.types.BooleanType;
+import org.apache.flink.table.store.types.CharType;
+import org.apache.flink.table.store.types.DataType;
+import org.apache.flink.table.store.types.DataTypeDefaultVisitor;
+import org.apache.flink.table.store.types.DateType;
+import org.apache.flink.table.store.types.DecimalType;
+import org.apache.flink.table.store.types.DoubleType;
+import org.apache.flink.table.store.types.FloatType;
+import org.apache.flink.table.store.types.IntType;
+import org.apache.flink.table.store.types.LocalZonedTimestampType;
+import org.apache.flink.table.store.types.MapType;
+import org.apache.flink.table.store.types.MultisetType;
+import org.apache.flink.table.store.types.RowType;
+import org.apache.flink.table.store.types.SmallIntType;
+import org.apache.flink.table.store.types.TimeType;
+import org.apache.flink.table.store.types.TimestampType;
+import org.apache.flink.table.store.types.TinyIntType;
+import org.apache.flink.table.store.types.VarBinaryType;
+import org.apache.flink.table.store.types.VarCharType;
+
+
 import java.util.List;
 import java.util.stream.Collectors;
 
 /** Trino type from Flink Type. */
 public class TrinoTypeUtils {
 
-    public static Type fromFlinkType(LogicalType type) {
+    public static Type fromFlinkType(DataType type) {
         return type.accept(FlinkToTrinoTypeVistor.INSTANCE);
     }
 
-    private static class FlinkToTrinoTypeVistor extends LogicalTypeDefaultVisitor<Type> {
+    private static class FlinkToTrinoTypeVistor extends DataTypeDefaultVisitor<Type> {
 
         private static final FlinkToTrinoTypeVistor INSTANCE = new FlinkToTrinoTypeVistor();
 
@@ -150,7 +151,7 @@ public class TrinoTypeUtils {
 
         @Override
         public Type visit(ArrayType arrayType) {
-            LogicalType elementType = arrayType.getElementType();
+            DataType elementType = arrayType.getElementType();
             return new io.trino.spi.type.ArrayType(elementType.accept(this));
         }
 
@@ -174,13 +175,13 @@ public class TrinoTypeUtils {
                             .map(
                                     field ->
                                             io.trino.spi.type.RowType.field(
-                                                    field.getName(), field.getType().accept(this)))
+                                                    field.name(), field.type().accept(this)))
                             .collect(Collectors.toList());
             return io.trino.spi.type.RowType.from(fields);
         }
 
         @Override
-        protected Type defaultMethod(LogicalType logicalType) {
+        protected Type defaultMethod(DataType logicalType) {
             throw new UnsupportedOperationException("Unsupported type: " + logicalType);
         }
     }

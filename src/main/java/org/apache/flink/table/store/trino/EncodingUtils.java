@@ -18,7 +18,8 @@
 
 package org.apache.flink.table.store.trino;
 
-import org.apache.flink.util.InstantiationUtil;
+import org.apache.flink.table.store.utils.InstantiationUtil;
+
 
 import java.util.Base64;
 

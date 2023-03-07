@@ -18,22 +18,27 @@
 
 package org.apache.flink.table.store.trino;
 
-import org.apache.flink.core.fs.Path;
-import org.apache.flink.table.data.GenericMapData;
-import org.apache.flink.table.data.GenericRowData;
+import org.apache.flink.table.store.data.BinaryString;
+import org.apache.flink.table.store.data.GenericMap;
+import org.apache.flink.table.store.data.GenericRow;
+import org.apache.flink.table.store.file.schema.Schema;
 import org.apache.flink.table.store.file.schema.SchemaManager;
-import org.apache.flink.table.store.file.schema.UpdateSchema;
+import org.apache.flink.table.store.fs.Path;
+import org.apache.flink.table.store.fs.local.LocalFileIO;
 import org.apache.flink.table.store.table.FileStoreTable;
 import org.apache.flink.table.store.table.FileStoreTableFactory;
+import org.apache.flink.table.store.table.sink.InnerTableCommit;
+import org.apache.flink.table.store.table.sink.InnerTableWrite;
 import org.apache.flink.table.store.table.sink.TableCommit;
 import org.apache.flink.table.store.table.sink.TableWrite;
-import org.apache.flink.table.types.logical.BigIntType;
-import org.apache.flink.table.types.logical.CharType;
-import org.apache.flink.table.types.logical.IntType;
-import org.apache.flink.table.types.logical.MapType;
-import org.apache.flink.table.types.logical.RowType;
-import org.apache.flink.table.types.logical.VarCharType;
-import org.apache.flink.types.RowKind;
+import org.apache.flink.table.store.types.BigIntType;
+import org.apache.flink.table.store.types.CharType;
+import org.apache.flink.table.store.types.DataField;
+import org.apache.flink.table.store.types.IntType;
+import org.apache.flink.table.store.types.MapType;
+import org.apache.flink.table.store.types.RowKind;
+import org.apache.flink.table.store.types.RowType;
+import org.apache.flink.table.store.types.VarCharType;
 
 import io.trino.testing.AbstractTestQueryFramework;
 import io.trino.testing.DistributedQueryRunner;
@@ -50,7 +55,7 @@ import java.util.UUID;
 
 import static io.airlift.testing.Closeables.closeAllSuppress;
 import static io.trino.testing.TestingSession.testSessionBuilder;
-import static org.apache.flink.table.data.StringData.fromString;
+import static org.apache.flink.table.store.data.BinaryString.fromString;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** ITCase for trino connector. */
@@ -66,19 +71,19 @@ public class TestTrinoITCase extends AbstractTestQueryFramework {
         // flink sink
         Path tablePath1 = new Path(warehouse, DB + ".db/t1");
         SimpleTableTestHelper testHelper1 = createTestHelper(tablePath1);
-        testHelper1.write(GenericRowData.of(1, 2L, fromString("1"), fromString("1")));
-        testHelper1.write(GenericRowData.of(3, 4L, fromString("2"), fromString("2")));
-        testHelper1.write(GenericRowData.of(5, 6L, fromString("3"), fromString("3")));
-        testHelper1.write(GenericRowData.ofKind(RowKind.DELETE, 3, 4L, fromString("2"), fromString("2")));
+        testHelper1.write(GenericRow.of(1, 2L, fromString("1"), fromString("1")));
+        testHelper1.write(GenericRow.of(3, 4L, fromString("2"), fromString("2")));
+        testHelper1.write(GenericRow.of(5, 6L, fromString("3"), fromString("3")));
+        testHelper1.write(GenericRow.ofKind(RowKind.DELETE, 3, 4L, fromString("2"), fromString("2")));
         testHelper1.commit();
 
         Path tablePath2 = new Path(warehouse, "default.db/t2");
         SimpleTableTestHelper testHelper2 = createTestHelper(tablePath2);
-        testHelper2.write(GenericRowData.of(1, 2L, fromString("1"), fromString("1")));
-        testHelper2.write(GenericRowData.of(3, 4L, fromString("2"), fromString("2")));
+        testHelper2.write(GenericRow.of(1, 2L, fromString("1"), fromString("1")));
+        testHelper2.write(GenericRow.of(3, 4L, fromString("2"), fromString("2")));
         testHelper2.commit();
-        testHelper2.write(GenericRowData.of(5, 6L, fromString("3"), fromString("3")));
-        testHelper2.write(GenericRowData.of(7, 8L, fromString("4"), fromString("4")));
+        testHelper2.write(GenericRow.of(5, 6L, fromString("3"), fromString("3")));
+        testHelper2.write(GenericRow.of(7, 8L, fromString("4"), fromString("4")));
         testHelper2.commit();
 
         {
@@ -86,25 +91,25 @@ public class TestTrinoITCase extends AbstractTestQueryFramework {
             RowType rowType =
                     new RowType(
                             Arrays.asList(
-                                    new RowType.RowField("pt", new VarCharType()),
-                                    new RowType.RowField("a", new IntType()),
-                                    new RowType.RowField("b", new BigIntType()),
-                                    new RowType.RowField("c", new BigIntType()),
-                                    new RowType.RowField("d", new IntType())));
-            new SchemaManager(tablePath3)
-                    .commitNewVersion(
-                            new UpdateSchema(
-                                    rowType,
+                                    new DataField(0, "pt", new VarCharType()),
+                                    new DataField(1, "a", new IntType()),
+                                    new DataField(2, "b", new BigIntType()),
+                                    new DataField(3, "c", new BigIntType()),
+                                    new DataField(4, "d", new IntType())));
+            new SchemaManager(LocalFileIO.create(), tablePath3)
+                    .createTable(
+                            new Schema(
+                                    rowType.getFields(),
                                     Collections.singletonList("pt"),
                                     Collections.emptyList(),
                                     new HashMap<>(),
                                     ""));
-            FileStoreTable table = FileStoreTableFactory.create(tablePath3);
-            TableWrite writer = table.newWrite("user");
-            TableCommit commit = table.newCommit("user");
-            writer.write(GenericRowData.of(fromString("1"), 1, 1L, 1L, 1));
-            writer.write(GenericRowData.of(fromString("1"), 1, 2L, 2L, 2));
-            writer.write(GenericRowData.of(fromString("2"), 3, 3L, 3L, 3));
+            FileStoreTable table = FileStoreTableFactory.create(LocalFileIO.create(), tablePath3);
+            InnerTableWrite writer = table.newWrite("user");
+            InnerTableCommit commit = table.newCommit("user");
+            writer.write(GenericRow.of(fromString("1"), 1, 1L, 1L, 1));
+            writer.write(GenericRow.of(fromString("1"), 1, 2L, 2L, 2));
+            writer.write(GenericRow.of(fromString("2"), 3, 3L, 3L, 3));
             commit.commit(0, writer.prepareCommit(true, 0));
         }
 
@@ -113,21 +118,21 @@ public class TestTrinoITCase extends AbstractTestQueryFramework {
             RowType rowType =
                     new RowType(
                             Arrays.asList(
-                                    new RowType.RowField("i", new IntType()),
-                                    new RowType.RowField("map", new MapType(new VarCharType(VarCharType.MAX_LENGTH), new VarCharType(VarCharType.MAX_LENGTH)))
+                                    new DataField(0, "i", new IntType()),
+                                    new DataField(1, "map", new MapType(new VarCharType(VarCharType.MAX_LENGTH), new VarCharType(VarCharType.MAX_LENGTH)))
                                     ));
-            new SchemaManager(tablePath4)
-                    .commitNewVersion(
-                            new UpdateSchema(
-                                    rowType,
+            new SchemaManager(LocalFileIO.create(), tablePath4)
+                    .createTable(
+                            new Schema(
+                                    rowType.getFields(),
                                     Collections.emptyList(),
                                     Collections.singletonList("i"),
                                     new HashMap<>(),
                                     ""));
-            FileStoreTable table = FileStoreTableFactory.create(tablePath4);
-            TableWrite writer = table.newWrite("user");
-            TableCommit commit = table.newCommit("user");
-            writer.write(GenericRowData.of(1, new GenericMapData(new HashMap<>() {
+            FileStoreTable table = FileStoreTableFactory.create(LocalFileIO.create(), tablePath4);
+            InnerTableWrite writer = table.newWrite("user");
+            InnerTableCommit commit = table.newCommit("user");
+            writer.write(GenericRow.of(1, new GenericMap(new HashMap<>() {
                 {
                     put(fromString("1"), fromString("2"));
                 }
@@ -156,11 +161,11 @@ public class TestTrinoITCase extends AbstractTestQueryFramework {
         RowType rowType =
                 new RowType(
                         Arrays.asList(
-                                new RowType.RowField("a", new IntType()),
-                                new RowType.RowField("b", new BigIntType()),
+                                new DataField(0, "a", new IntType()),
+                                new DataField(1, "b", new BigIntType()),
                                 // test field name has upper case
-                                new RowType.RowField("aCa", new VarCharType()),
-                                new RowType.RowField("d", new CharType(1))
+                                new DataField(2, "aCa", new VarCharType()),
+                                new DataField(3, "d", new CharType(1))
                                 ));
         return new SimpleTableTestHelper(tablePath, rowType);
     }

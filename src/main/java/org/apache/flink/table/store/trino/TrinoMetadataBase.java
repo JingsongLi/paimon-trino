@@ -18,11 +18,13 @@
 
 package org.apache.flink.table.store.trino;
 
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.table.catalog.ObjectPath;
+import org.apache.flink.table.store.catalog.CatalogContext;
 import org.apache.flink.table.store.file.catalog.Catalog;
 import org.apache.flink.table.store.file.catalog.CatalogFactory;
-import org.apache.flink.util.InstantiationUtil;
+import org.apache.flink.table.store.file.catalog.Identifier;
+import org.apache.flink.table.store.options.CatalogOptions;
+import org.apache.flink.table.store.options.Options;
+import org.apache.flink.table.store.utils.InstantiationUtil;
 
 import io.trino.spi.connector.Assignment;
 import io.trino.spi.connector.ColumnHandle;
@@ -61,8 +63,8 @@ public abstract class TrinoMetadataBase implements ConnectorMetadata {
 
     private final Catalog catalog;
 
-    public TrinoMetadataBase(Configuration options) {
-        this.catalog = CatalogFactory.createCatalog(options);
+    public TrinoMetadataBase(Options catalogOptions) {
+        this.catalog = CatalogFactory.createCatalog(CatalogContext.create(catalogOptions));
     }
 
     @Override
@@ -86,7 +88,7 @@ public abstract class TrinoMetadataBase implements ConnectorMetadata {
     }
 
     public TrinoTableHandle getTableHandle(SchemaTableName tableName) {
-        ObjectPath tablePath = new ObjectPath(tableName.getSchemaName(), tableName.getTableName());
+        Identifier tablePath = new Identifier(tableName.getSchemaName(), tableName.getTableName());
         byte[] serializedTable;
         try {
             serializedTable = InstantiationUtil.serializeObject(catalog.getTable(tablePath));

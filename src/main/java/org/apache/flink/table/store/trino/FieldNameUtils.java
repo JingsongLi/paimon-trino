@@ -18,7 +18,8 @@
 
 package org.apache.flink.table.store.trino;
 
-import org.apache.flink.table.types.logical.RowType;
+import org.apache.flink.table.store.types.DataField;
+import org.apache.flink.table.store.types.RowType;
 
 
 import java.util.List;
@@ -28,7 +29,7 @@ public class FieldNameUtils {
 
     public static List<String> fieldNames(RowType rowType) {
         return rowType.getFields().stream()
-                .map(RowType.RowField::getName)
+                .map(DataField::name)
                 .map(String::toLowerCase)
                 .collect(Collectors.toList());
     }

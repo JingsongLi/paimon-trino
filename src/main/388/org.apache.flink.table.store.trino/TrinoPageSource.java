@@ -20,15 +20,14 @@ package org.apache.flink.table.store.trino;
 
 import io.trino.spi.connector.ColumnHandle;
 
-import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.store.file.utils.RecordReader;
-
+import org.apache.flink.table.store.data.InternalRow;
+import org.apache.flink.table.store.reader.RecordReader;
 
 import java.util.List;
 
 public class TrinoPageSource extends TrinoPageSourceBase {
 
-    public TrinoPageSource(RecordReader<RowData> reader, List<ColumnHandle> projectedColumns) {
+    public TrinoPageSource(RecordReader<InternalRow> reader, List<ColumnHandle> projectedColumns) {
         super(reader, projectedColumns);
     }
 

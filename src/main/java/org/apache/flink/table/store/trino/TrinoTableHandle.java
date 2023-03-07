@@ -19,8 +19,7 @@
 package org.apache.flink.table.store.trino;
 
 import org.apache.flink.table.store.table.Table;
-import org.apache.flink.table.types.logical.RowType;
-import org.apache.flink.util.InstantiationUtil;
+import org.apache.flink.table.store.utils.InstantiationUtil;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -127,12 +126,12 @@ public final class TrinoTableHandle implements ConnectorTableHandle {
                 .map(
                         column ->
                                 ColumnMetadata.builder()
-                                        .setName(column.getName())
+                                        .setName(column.name())
                                         .setType(
                                                 TrinoTypeUtils.fromFlinkType(
-                                                        column.getType()))
-                                        .setNullable(column.getType().isNullable())
-                                        .setComment(column.getDescription())
+                                                        column.type()))
+                                        .setNullable(column.type().isNullable())
+                                        .setComment(Optional.ofNullable(column.description()))
                                         .build())
                 .collect(Collectors.toList());
     }

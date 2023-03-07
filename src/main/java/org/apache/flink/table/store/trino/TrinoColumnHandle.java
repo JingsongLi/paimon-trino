@@ -18,14 +18,16 @@
 
 package org.apache.flink.table.store.trino;
 
-import org.apache.flink.table.types.logical.LogicalType;
-import org.apache.flink.table.types.logical.utils.LogicalTypeParser;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ColumnMetadata;
 import io.trino.spi.type.Type;
+
+import org.apache.flink.table.store.file.utils.JsonSerdeUtil;
+import org.apache.flink.table.store.types.DataType;
+import org.apache.flink.table.store.types.DataTypeJsonParser;
+
 
 import static java.util.Objects.requireNonNull;
 
@@ -45,10 +47,10 @@ public final class TrinoColumnHandle implements ColumnHandle {
         this.trinoType = requireNonNull(trinoType, "columnType is null");
     }
 
-    public static TrinoColumnHandle of(String columnName, LogicalType columnType) {
+    public static TrinoColumnHandle of(String columnName, DataType columnType) {
         return new TrinoColumnHandle(
                 columnName,
-                columnType.asSerializableString(),
+                JsonSerdeUtil.toJson(columnType),
                 TrinoTypeUtils.fromFlinkType(columnType));
     }
 
@@ -67,8 +69,8 @@ public final class TrinoColumnHandle implements ColumnHandle {
         return trinoType;
     }
 
-    public LogicalType logicalType() {
-        return LogicalTypeParser.parse(typeString);
+    public DataType logicalType() {
+        return JsonSerdeUtil.fromJson(typeString, DataType.class);
     }
 
     public ColumnMetadata getColumnMetadata() {

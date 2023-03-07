@@ -19,6 +19,7 @@
 package org.apache.flink.table.store.trino;
 
 import org.apache.flink.table.store.table.Table;
+import org.apache.flink.table.store.table.source.ReadBuilder;
 import org.apache.flink.table.store.table.source.Split;
 import org.apache.flink.table.store.table.source.TableScan;
 
@@ -38,11 +39,11 @@ public abstract class TrinoSplitManagerBase implements ConnectorSplitManager {
 
         TrinoTableHandle tableHandle = (TrinoTableHandle) connectorTableHandle;
         Table table = tableHandle.table();
-        TableScan tableScan = table.newScan();
+        ReadBuilder readBuilder = table.newReadBuilder();
         new TrinoFilterConverter(table.rowType())
                 .convert(tableHandle.getFilter())
-                .ifPresent(tableScan::withFilter);
-        List<Split> splits = tableScan.plan().splits();
+                .ifPresent(readBuilder::withFilter);
+        List<Split> splits = readBuilder.newScan().plan().splits();
         return new TrinoSplitSource(
                 splits.stream().map(TrinoSplit::fromSplit).collect(Collectors.toList()));
     }

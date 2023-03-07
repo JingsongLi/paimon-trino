@@ -18,11 +18,11 @@
 
 package org.apache.flink.table.store.trino;
 
-import org.apache.flink.configuration.Configuration;
+import org.apache.flink.table.store.options.Options;
 
 public class TrinoMetadata extends TrinoMetadataBase {
 
-    public TrinoMetadata(Configuration options) {
-        super(options);
+    public TrinoMetadata(Options catalogOptions) {
+        super(catalogOptions);
     }
 }

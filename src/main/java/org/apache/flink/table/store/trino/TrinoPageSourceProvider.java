@@ -19,8 +19,8 @@
 package org.apache.flink.table.store.trino;
 
 import org.apache.flink.table.store.table.Table;
-import org.apache.flink.table.store.table.source.TableRead;
-import org.apache.flink.table.types.logical.RowType;
+import org.apache.flink.table.store.table.source.ReadBuilder;
+import org.apache.flink.table.store.types.RowType;
 
 import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ConnectorPageSource;
@@ -55,7 +55,7 @@ public class TrinoPageSourceProvider implements ConnectorPageSourceProvider {
 
     private ConnectorPageSource createPageSource(TrinoTableHandle tableHandle, TrinoSplit split, List<ColumnHandle> columns) {
         Table table = tableHandle.table();
-        TableRead read = table.newRead();
+        ReadBuilder read = table.newReadBuilder();
         RowType rowType = table.rowType();
         List<String> fieldNames = FieldNameUtils.fieldNames(rowType);
         List<String> projectedFields =
@@ -73,7 +73,7 @@ public class TrinoPageSourceProvider implements ConnectorPageSourceProvider {
                 .ifPresent(read::withFilter);
 
         try {
-            return new TrinoPageSource(read.createReader(split.decodeSplit()), columns);
+            return new TrinoPageSource(read.newRead().createReader(split.decodeSplit()), columns);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
