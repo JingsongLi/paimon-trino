@@ -52,6 +52,7 @@ import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 import static io.airlift.slice.Slices.wrappedBuffer;
 import static io.trino.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
@@ -108,11 +109,13 @@ public abstract class TrinoPageSourceBase implements ConnectorPageSource {
 
     @Override
     public Page getNextPage() {
-        try {
-            return nextPage();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        return ClassLoaderUtils.runWithContextClassLoader(() -> {
+            try {
+                return nextPage();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }, TrinoPageSourceBase.class.getClassLoader());
     }
 
     private Page nextPage() throws IOException {
