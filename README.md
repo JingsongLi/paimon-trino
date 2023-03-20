@@ -2,9 +2,9 @@
 
 Because Trino's dependency is JDK 11, it is not possible to include the trino connector in [Paimon](https://github.com/apache/incubator-paimon).
 
-## Deploy Table Store Trino Connector
+## Deploy Paimon Trino Connector
 
-Building Table Store Trino Bundled Jar is by running:
+Building Paimon Trino Bundled Jar is by running:
 
 - Trino 388: `mvn clean install -DskipTests` , (JDK 11 required).
 - Trino 358: `mvn clean install -DskipTests -Ptrino-358` , (JDK 11 required).
@@ -16,7 +16,7 @@ NOTE: For JDK 17,  when [Deploying Trino](https://trino.io/docs/current/installa
 Then, copy `target/paimon-trino-*.jar` and [flink-shaded-hadoop-2-uber-2.8.3-10.0.jar](https://repo.maven.apache.org/maven2/org/apache/flink/flink-shaded-hadoop-2-uber/2.8.3-10.0/flink-shaded-hadoop-2-uber-2.8.3-10.0.jar)
 to `plugin/tablestore`.
 
-## Configure Table Store Catalog
+## Configure Paimon Catalog
 
 Catalogs are registered by creating a catalog properties file in the etc/catalog directory.
 For example, create `etc/catalog/tablestore.properties` with the following contents to mount
