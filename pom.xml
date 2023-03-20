@@ -28,9 +28,9 @@ under the License.
         <version>23</version>
     </parent>
 
-    <groupId>org.apache.flink</groupId>
-    <artifactId>flink-table-store-trino</artifactId>
-    <name>Flink Table Store : Trino</name>
+    <groupId>org.apache.paimon</groupId>
+    <artifactId>paimon-trino</artifactId>
+    <name>Paimon : Trino</name>
     <version>0.4-SNAPSHOT</version>
 
     <packaging>jar</packaging>
@@ -45,10 +45,9 @@ under the License.
     </properties>
 
     <dependencies>
-        <!-- Flink All dependencies -->
         <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-table-store-shade</artifactId>
+            <groupId>org.apache.paimon</groupId>
+            <artifactId>paimon-shade</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -234,7 +233,7 @@ under the License.
                         <configuration>
                             <artifactSet>
                                 <includes combine.children="append">
-                                    <include>org.apache.flink:flink-table-store-shade</include>
+                                    <include>org.apache.paimon:paimon-shade</include>
                                     <include>org.slf4j:slf4j-api</include>
                                     <include>org.xerial.snappy:snappy-java</include>
                                     <include>org.apache.commons:commons-lang3</include>
@@ -252,7 +251,7 @@ under the License.
                                 <!-- The ApacheNoticeResourceTransformer collects and aggregates NOTICE files -->
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">
-                                    <projectName>Apache Flink</projectName>
+                                    <projectName>Apache Paimon</projectName>
                                     <encoding>UTF-8</encoding>
                                 </transformer>
                             </transformers>
