@@ -33,6 +33,6 @@ public class TrinoSplitManager extends TrinoSplitManagerBase {
             ConnectorTableHandle table,
             SplitSchedulingStrategy splitSchedulingStrategy,
             DynamicFilter dynamicFilter) {
-        return getSplits(table);
+        return getSplits(table, session);
     }
 }

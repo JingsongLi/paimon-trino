@@ -30,6 +30,8 @@ import io.trino.spi.connector.ConnectorSplit;
 import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.ConnectorTransactionHandle;
 import io.trino.spi.connector.DynamicFilter;
+import io.trino.spi.predicate.TupleDomain;
+
 
 import java.io.IOException;
 import java.util.List;
@@ -45,16 +47,18 @@ public class TrinoPageSourceProvider implements ConnectorPageSourceProvider {
             ConnectorTransactionHandle transaction,
             ConnectorSession session,
             ConnectorSplit split,
-            ConnectorTableHandle table,
+            ConnectorTableHandle tableHandle,
             List<ColumnHandle> columns,
             DynamicFilter dynamicFilter) {
+        TrinoTableHandle trinoTableHandle = (TrinoTableHandle) tableHandle;
+        Table table = trinoTableHandle.tableWithDynamicOptions(session);
         return runWithContextClassLoader(
-                () -> createPageSource((TrinoTableHandle) table, (TrinoSplit) split, columns),
+                () -> createPageSource(table, trinoTableHandle.getFilter(), (TrinoSplit) split, columns),
                 TrinoPageSourceProvider.class.getClassLoader());
     }
 
-    private ConnectorPageSource createPageSource(TrinoTableHandle tableHandle, TrinoSplit split, List<ColumnHandle> columns) {
-        Table table = tableHandle.table();
+    private ConnectorPageSource createPageSource(
+            Table table, TupleDomain<TrinoColumnHandle> filter, TrinoSplit split, List<ColumnHandle> columns) {
         TableRead read = table.newRead();
         RowType rowType = table.rowType();
         List<String> fieldNames = FieldNameUtils.fieldNames(rowType);
@@ -69,7 +73,7 @@ public class TrinoPageSourceProvider implements ConnectorPageSourceProvider {
         }
 
         new TrinoFilterConverter(rowType)
-                .convert(tableHandle.getFilter())
+                .convert(filter)
                 .ifPresent(read::withFilter);
 
         try {

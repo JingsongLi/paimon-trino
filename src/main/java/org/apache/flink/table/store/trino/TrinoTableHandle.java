@@ -18,6 +18,7 @@
 
 package org.apache.flink.table.store.trino;
 
+import org.apache.flink.table.store.CoreOptions;
 import org.apache.flink.table.store.table.Table;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.util.InstantiationUtil;
@@ -26,6 +27,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ColumnMetadata;
+import io.trino.spi.connector.ConnectorSession;
 import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.ConnectorTableMetadata;
 import io.trino.spi.connector.SchemaTableName;
@@ -34,13 +36,19 @@ import io.trino.spi.predicate.TupleDomain;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 /** Trino {@link ConnectorTableHandle}. */
 public final class TrinoTableHandle implements ConnectorTableHandle {
+
+    public static final String SCAN_TIMESTAMP = "scan_timestamp_millis";
+    public static final String SCAN_SNAPSHOT = "scan_snapshot_id";
+
     private final String schemaName;
     private final String tableName;
     private final byte[] serializedTable;
@@ -101,6 +109,23 @@ public final class TrinoTableHandle implements ConnectorTableHandle {
     public TrinoTableHandle copy(Optional<List<ColumnHandle>> projectedColumns) {
         return new TrinoTableHandle(
                 schemaName, tableName, serializedTable, filter, projectedColumns);
+    }
+
+    public Table tableWithDynamicOptions(ConnectorSession session) {
+        // see TrinoConnector.getSessionProperties
+        Map<String, String> dynamicOptions = new HashMap<>();
+        Long scanTimestampMills = session.getProperty(SCAN_TIMESTAMP, Long.class);
+        if (scanTimestampMills != null) {
+            dynamicOptions.put(CoreOptions.SCAN_TIMESTAMP_MILLIS.key(), scanTimestampMills.toString());
+        }
+        Long scanSnapshotId = session.getProperty(SCAN_SNAPSHOT, Long.class);
+        if (scanSnapshotId != null) {
+            dynamicOptions.put(CoreOptions.SCAN_SNAPSHOT_ID.key(), scanSnapshotId.toString());
+        }
+
+        return dynamicOptions.size() > 0 ?
+                table().copy(dynamicOptions) :
+                table();
     }
 
     public Table table() {
