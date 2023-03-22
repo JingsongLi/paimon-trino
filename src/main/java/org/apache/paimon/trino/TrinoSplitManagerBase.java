@@ -18,6 +18,7 @@
 
 package org.apache.paimon.trino;
 
+import io.trino.spi.connector.ConnectorSession;
 import org.apache.paimon.table.Table;
 import org.apache.paimon.table.source.ReadBuilder;
 import org.apache.paimon.table.source.Split;
@@ -33,12 +34,13 @@ import java.util.stream.Collectors;
 /** Trino {@link ConnectorSplitManager}. */
 public abstract class TrinoSplitManagerBase implements ConnectorSplitManager {
 
-    protected ConnectorSplitSource getSplits(ConnectorTableHandle connectorTableHandle) {
+    protected ConnectorSplitSource getSplits(
+            ConnectorTableHandle connectorTableHandle, ConnectorSession session) {
         // TODO dynamicFilter?
         // TODO what is constraint?
 
         TrinoTableHandle tableHandle = (TrinoTableHandle) connectorTableHandle;
-        Table table = tableHandle.table();
+        Table table = tableHandle.tableWithDynamicOptions(session);
         ReadBuilder readBuilder = table.newReadBuilder();
         new TrinoFilterConverter(table.rowType())
                 .convert(tableHandle.getFilter())

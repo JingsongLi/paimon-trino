@@ -18,6 +18,8 @@
 
 package org.apache.paimon.trino;
 
+import io.trino.spi.predicate.TupleDomain;
+import org.apache.paimon.CoreOptions;
 import org.apache.paimon.table.Table;
 import org.apache.paimon.table.source.ReadBuilder;
 import org.apache.paimon.types.RowType;
@@ -32,7 +34,9 @@ import io.trino.spi.connector.ConnectorTransactionHandle;
 import io.trino.spi.connector.DynamicFilter;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.apache.paimon.trino.ClassLoaderUtils.runWithContextClassLoader;
@@ -45,16 +49,18 @@ public class TrinoPageSourceProvider implements ConnectorPageSourceProvider {
             ConnectorTransactionHandle transaction,
             ConnectorSession session,
             ConnectorSplit split,
-            ConnectorTableHandle table,
+            ConnectorTableHandle tableHandle,
             List<ColumnHandle> columns,
             DynamicFilter dynamicFilter) {
+        TrinoTableHandle trinoTableHandle = (TrinoTableHandle) tableHandle;
+        Table table = trinoTableHandle.tableWithDynamicOptions(session);
         return runWithContextClassLoader(
-                () -> createPageSource((TrinoTableHandle) table, (TrinoSplit) split, columns),
+                () -> createPageSource(table, trinoTableHandle.getFilter(), (TrinoSplit) split, columns),
                 TrinoPageSourceProvider.class.getClassLoader());
     }
 
-    private ConnectorPageSource createPageSource(TrinoTableHandle tableHandle, TrinoSplit split, List<ColumnHandle> columns) {
-        Table table = tableHandle.table();
+    private ConnectorPageSource createPageSource(
+            Table table, TupleDomain<TrinoColumnHandle> filter, TrinoSplit split, List<ColumnHandle> columns) {
         ReadBuilder read = table.newReadBuilder();
         RowType rowType = table.rowType();
         List<String> fieldNames = FieldNameUtils.fieldNames(rowType);
@@ -69,7 +75,7 @@ public class TrinoPageSourceProvider implements ConnectorPageSourceProvider {
         }
 
         new TrinoFilterConverter(rowType)
-                .convert(tableHandle.getFilter())
+                .convert(filter)
                 .ifPresent(read::withFilter);
 
         try {
