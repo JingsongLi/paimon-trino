@@ -20,21 +20,11 @@ package org.apache.flink.table.store.trino;
 
 import io.trino.spi.connector.Connector;
 import io.trino.spi.connector.ConnectorTransactionHandle;
-import io.trino.spi.session.PropertyMetadata;
 import io.trino.spi.transaction.IsolationLevel;
-
-
-import java.util.Arrays;
-import java.util.List;
 
 import static io.trino.spi.transaction.IsolationLevel.READ_COMMITTED;
 import static io.trino.spi.transaction.IsolationLevel.checkConnectorSupports;
 import static java.util.Objects.requireNonNull;
-
-import static org.apache.flink.table.store.CoreOptions.SCAN_SNAPSHOT_ID;
-import static org.apache.flink.table.store.CoreOptions.SCAN_TIMESTAMP_MILLIS;
-import static org.apache.flink.table.store.trino.TrinoTableHandle.SCAN_TIMESTAMP;
-import static org.apache.flink.table.store.trino.TrinoTableHandle.SCAN_SNAPSHOT;
 
 /** Trino {@link Connector}. */
 public class TrinoConnector implements Connector {
@@ -72,21 +62,5 @@ public class TrinoConnector implements Connector {
     @Override
     public TrinoPageSourceProvider getPageSourceProvider() {
         return trinoPageSourceProvider;
-    }
-
-    @Override
-    public List<PropertyMetadata<?>> getSessionProperties() {
-        return Arrays.asList(
-                PropertyMetadata.longProperty(
-                        SCAN_TIMESTAMP,
-                        SCAN_TIMESTAMP_MILLIS.description().toString(),
-                        null,
-                        true),
-                PropertyMetadata.longProperty(
-                        SCAN_SNAPSHOT,
-                        SCAN_SNAPSHOT_ID.description().toString(),
-                        null,
-                        true)
-        );
     }
 }

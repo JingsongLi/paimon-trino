@@ -22,7 +22,6 @@ import org.apache.flink.table.store.table.Table;
 import org.apache.flink.table.store.table.source.Split;
 import org.apache.flink.table.store.table.source.TableScan;
 
-import io.trino.spi.connector.ConnectorSession;
 import io.trino.spi.connector.ConnectorSplitManager;
 import io.trino.spi.connector.ConnectorSplitSource;
 import io.trino.spi.connector.ConnectorTableHandle;
@@ -33,13 +32,12 @@ import java.util.stream.Collectors;
 /** Trino {@link ConnectorSplitManager}. */
 public abstract class TrinoSplitManagerBase implements ConnectorSplitManager {
 
-    protected ConnectorSplitSource getSplits(
-            ConnectorTableHandle connectorTableHandle, ConnectorSession session) {
+    protected ConnectorSplitSource getSplits(ConnectorTableHandle connectorTableHandle) {
         // TODO dynamicFilter?
         // TODO what is constraint?
 
         TrinoTableHandle tableHandle = (TrinoTableHandle) connectorTableHandle;
-        Table table = tableHandle.tableWithDynamicOptions(session);
+        Table table = tableHandle.table();
         TableScan tableScan = table.newScan();
         new TrinoFilterConverter(table.rowType())
                 .convert(tableHandle.getFilter())

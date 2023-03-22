@@ -34,6 +34,6 @@ public class TrinoSplitManager extends TrinoSplitManagerBase {
             ConnectorTableHandle table,
             DynamicFilter dynamicFilter,
             Constraint constraint) {
-        return getSplits(table, session);
+        return getSplits(table);
     }
 }

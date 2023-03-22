@@ -47,10 +47,3 @@ Keytab files must be distributed to every node in the cluster that runs Trino.
 ```
 SELECT * FROM tablestore.default.MyTable
 ```
-
-## Query with Time Traveling
-
-```
-SET SESSION tablestore.scan_timestamp_millis=1679486589444;
-SELECT * FROM tablestore.default.MyTable;
-```
