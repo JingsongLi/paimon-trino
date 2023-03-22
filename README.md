@@ -47,3 +47,8 @@ Keytab files must be distributed to every node in the cluster that runs Trino.
 ```
 SELECT * FROM tablestore.default.MyTable
 ```
+
+## Query With Time Traveling
+
+Time Traveling is not supported in 0.3.
+Please use >= 0.4 versions.
