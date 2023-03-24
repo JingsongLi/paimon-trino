@@ -75,6 +75,9 @@ public class TrinoTypeUtils {
 
         @Override
         public Type visit(VarCharType varCharType) {
+            if (varCharType.getLength() == VarCharType.MAX_LENGTH) {
+                return VarcharType.createUnboundedVarcharType();
+            }
             return VarcharType.createVarcharType(
                     Math.min(VarcharType.MAX_LENGTH, varCharType.getLength()));
         }
