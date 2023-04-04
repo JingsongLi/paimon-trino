@@ -28,7 +28,7 @@ import org.apache.paimon.reader.RecordReader;
 import org.apache.paimon.reader.RecordReader.RecordIterator;
 import org.apache.paimon.types.DataType;
 import org.apache.paimon.types.DataTypeChecks;
-import org.apache.paimon.utils.RowDataUtils;
+import org.apache.paimon.utils.InternalRowUtils;
 
 import io.airlift.slice.Slice;
 import io.trino.spi.Page;
@@ -132,7 +132,7 @@ public abstract class TrinoPageSourceBase implements ConnectorPageSource {
                 appendTo(
                         columnTypes.get(i),
                         logicalTypes.get(i),
-                        RowDataUtils.get(row, i, logicalTypes.get(i)),
+                        InternalRowUtils.get(row, i, logicalTypes.get(i)),
                         output);
             }
         }
@@ -231,7 +231,7 @@ public abstract class TrinoPageSourceBase implements ConnectorPageSource {
                 appendTo(
                         type.getTypeParameters().get(0),
                         elementType,
-                        RowDataUtils.get(arrayData, i, elementType),
+                        InternalRowUtils.get(arrayData, i, elementType),
                         builder);
             }
 
@@ -249,7 +249,7 @@ public abstract class TrinoPageSourceBase implements ConnectorPageSource {
                 appendTo(
                         fieldType,
                         fieldLogicalType,
-                        RowDataUtils.get(rowData, index, fieldLogicalType),
+                        InternalRowUtils.get(rowData, index, fieldLogicalType),
                         builder);
             }
             output.closeEntry();
@@ -266,12 +266,12 @@ public abstract class TrinoPageSourceBase implements ConnectorPageSource {
                 appendTo(
                         type.getTypeParameters().get(0),
                         keyType,
-                        RowDataUtils.get(keyArray, i, keyType),
+                        InternalRowUtils.get(keyArray, i, keyType),
                         builder);
                 appendTo(
                         type.getTypeParameters().get(1),
                         valueType,
-                        RowDataUtils.get(valueArray, i, valueType),
+                        InternalRowUtils.get(valueArray, i, valueType),
                         builder);
             }
             output.closeEntry();
