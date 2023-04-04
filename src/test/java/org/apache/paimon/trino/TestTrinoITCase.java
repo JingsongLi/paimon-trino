@@ -34,6 +34,7 @@ import org.apache.paimon.table.sink.TableWrite;
 import org.apache.paimon.types.BigIntType;
 import org.apache.paimon.types.CharType;
 import org.apache.paimon.types.DataField;
+import org.apache.paimon.types.DataTypes;
 import org.apache.paimon.types.IntType;
 import org.apache.paimon.types.MapType;
 import org.apache.paimon.types.RowKind;
@@ -91,7 +92,7 @@ public class TestTrinoITCase extends AbstractTestQueryFramework {
             RowType rowType =
                     new RowType(
                             Arrays.asList(
-                                    new DataField(0, "pt", new VarCharType()),
+                                    new DataField(0, "pt", DataTypes.STRING()),
                                     new DataField(1, "a", new IntType()),
                                     new DataField(2, "b", new BigIntType()),
                                     new DataField(3, "c", new BigIntType()),
@@ -197,6 +198,18 @@ public class TestTrinoITCase extends AbstractTestQueryFramework {
     public void testGroupByWithCast() {
         assertThat(sql("SELECT pt, a, SUM(b), SUM(d) FROM paimon.default.t3 GROUP BY pt, a ORDER BY pt, a"))
                 .isEqualTo("[[1, 1, 3, 3], [2, 3, 3, 3]]");
+    }
+
+    @Test
+    public void testShowCreateTable() {
+        assertThat(sql("SHOW CREATE TABLE paimon.default.t3"))
+                .isEqualTo("[[CREATE TABLE paimon.default.t3 (\n" +
+                        "   pt varchar,\n" +
+                        "   a integer,\n" +
+                        "   b bigint,\n" +
+                        "   c bigint,\n" +
+                        "   d integer\n" +
+                        ")]]");
     }
 
     private String sql(String sql) {
