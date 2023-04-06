@@ -64,6 +64,7 @@ public abstract class TrinoMetadataBase implements ConnectorMetadata {
     private final Catalog catalog;
 
     public TrinoMetadataBase(Options catalogOptions) {
+        SecurityContext.install(catalogOptions);
         this.catalog = CatalogFactory.createCatalog(CatalogContext.create(catalogOptions));
     }
 
