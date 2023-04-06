@@ -67,7 +67,6 @@ import static io.trino.spi.type.TimestampType.TIMESTAMP_MILLIS;
 import static io.trino.spi.type.TimestampWithTimeZoneType.TIMESTAMP_TZ_MILLIS;
 import static io.trino.spi.type.Timestamps.MICROSECONDS_PER_MILLISECOND;
 import static java.lang.String.format;
-import static org.apache.flink.shaded.guava30.com.google.common.base.Verify.verify;
 
 /** Trino {@link ConnectorPageSource}. */
 public abstract class TrinoPageSourceBase implements ConnectorPageSource {
@@ -185,7 +184,6 @@ public abstract class TrinoPageSourceBase implements ConnectorPageSource {
         } else if (javaType == Slice.class) {
             writeSlice(output, type, value);
         } else if (javaType == LongTimestampWithTimeZone.class) {
-            verify(type.equals(TIMESTAMP_TZ_MILLIS));
             Timestamp Timestamp = (Timestamp) value;
             type.writeObject(
                     output, fromEpochMillisAndFraction(Timestamp.getMillisecond(), 0, UTC_KEY));
