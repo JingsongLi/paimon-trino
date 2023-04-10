@@ -33,6 +33,15 @@ If you are using HDFS, choose one of the following ways to configure your HDFS:
 - set environment variable `HADOOP_CONF_DIR`.
 - configure `hadoop-conf-dir` in the properties.
 
+## Kerberos
+
+You can configure kerberos keytag file when using KERBEROS authentication in the properties.
+```
+security.kerberos.login.principal=hadoop-user
+security.kerberos.login.keytab=/etc/trino/hdfs.keytab
+```
+Keytab files must be distributed to every node in the cluster that runs Trino.
+
 ## Query
 
 ```
