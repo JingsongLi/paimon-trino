@@ -23,7 +23,6 @@ import org.apache.paimon.catalog.CatalogContext;
 import org.apache.paimon.catalog.Catalog;
 import org.apache.paimon.catalog.CatalogFactory;
 import org.apache.paimon.catalog.Identifier;
-import org.apache.paimon.options.CatalogOptions;
 import org.apache.paimon.options.Options;
 import org.apache.paimon.schema.Schema;
 import org.apache.paimon.schema.SchemaChange;

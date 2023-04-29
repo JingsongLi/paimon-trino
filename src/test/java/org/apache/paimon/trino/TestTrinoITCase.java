@@ -246,7 +246,7 @@ public class TestTrinoITCase extends AbstractTestQueryFramework {
             "file_format = 'ORC'," +
             "primary_key = ARRAY['orderkey','orderdate']," +
             "partitioned_by = ARRAY['orderdate']," +
-            "bucket = 2," +
+            "bucket = '2'," +
             "bucket_key = 'orderkey'," +
             "changelog_producer = 'input'" +
             ")");
